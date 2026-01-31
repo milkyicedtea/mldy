@@ -1,0 +1,15 @@
+*
+
+!/.gitignore
+
+!*.go
+!go.sum
+!go.mod
+
+README.md
+!LICENSE
+
+!*/
+
+# This has to stay at the end to overwrite the above
+**/.idea
