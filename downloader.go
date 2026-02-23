@@ -2,14 +2,19 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
+
+// ---- messages ---------------------------------------------------------------
 
 type ProgressMsg struct {
 	ID       int
@@ -23,63 +28,188 @@ type DownloadCompleteMsg struct {
 	Error      error
 }
 
+// PlaylistItem is one video entry returned by --flat-playlist -J.
+type PlaylistItem struct {
+	URL   string
+	Title string
+}
+
+// PlaylistResolvedMsg is sent after a playlist URL has been expanded into items.
+type PlaylistResolvedMsg struct {
+	OriginalURL   string
+	PlaylistTitle string
+	Items         []PlaylistItem
+	Error         error
+	Config        EntryConfig
+}
+
+// ---- downloader -------------------------------------------------------------
+
 type Downloader struct {
 	globalConfig Config
-	runtime      string // JavaScript runtime (deno, bun, node, or empty)
+	runtime      string
 }
 
 func NewDownloader(config Config, runtime string) *Downloader {
-	return &Downloader{
-		globalConfig: config,
-		runtime:      runtime,
+	return &Downloader{globalConfig: config, runtime: runtime}
+}
+
+// baseArgs returns the args common to every yt-dlp invocation.
+func (d *Downloader) baseArgs() []string {
+	args := []string{"--newline", "--progress"}
+	if d.runtime != "" {
+		args = append(args, "--js-runtimes", d.runtime)
+		if d.runtime == "deno" || d.runtime == "bun" {
+			args = append(args, "--remote-components", "ejs:npm")
+		} else {
+			args = append(args, "--remote-components", "ejs:github")
+		}
+	}
+	return args
+}
+
+// buildArgs constructs the full yt-dlp argument list for a single video download.
+func (d *Downloader) buildArgs(cfg Config, url string) []string {
+	args := d.baseArgs()
+	args = append(args,
+		"--no-playlist",
+		"-o", fmt.Sprintf("%s/%%(title)s.%%(ext)s", cfg.OutputFolder),
+	)
+
+	// Resolve effective kind when set to auto.
+	kind := cfg.Kind
+	if kind == KindAuto {
+		switch cfg.Format {
+		case "mp3", "m4a", "opus", "flac", "wav", "aac":
+			kind = KindAudio
+		default:
+			kind = KindVideo
+		}
+	}
+
+	switch kind {
+	case KindAudio:
+		args = append(args,
+			"-x",
+			"--audio-format", cfg.Format,
+			"--audio-quality", string(cfg.AudioQuality),
+		)
+	case KindVideo:
+		if cfg.VideoQuality == "best" {
+			args = append(args, "-f", "bestvideo+bestaudio")
+		} else {
+			height := strings.TrimSuffix(cfg.VideoQuality, "p")
+			args = append(args, "-f", fmt.Sprintf("bestvideo[height<=%s]+bestaudio", height))
+		}
+		if cfg.Format != "" && cfg.Format != "best" {
+			args = append(args, "--merge-output-format", cfg.Format)
+		}
+	}
+
+	args = append(args, url)
+	return args
+}
+
+// ResolvePlaylist runs yt-dlp with --flat-playlist to enumerate playlist items
+// without downloading anything, then sends a PlaylistResolvedMsg.
+func (d *Downloader) ResolvePlaylist(url string, config EntryConfig) tea.Cmd {
+	return func() tea.Msg {
+		args := []string{
+			"--flat-playlist",
+			"--no-warnings",
+			"-J", // dump JSON to stdout
+			url,
+		}
+		// Include runtime args so auth/region handling is consistent.
+		if d.runtime != "" {
+			args = append([]string{"--js-runtimes", d.runtime}, args...)
+		}
+
+		out, err := exec.Command("yt-dlp", args...).Output()
+		if err != nil {
+			return PlaylistResolvedMsg{
+				OriginalURL: url,
+				Error:       fmt.Errorf("failed to resolve playlist: %w", err),
+				Config:      config,
+			}
+		}
+
+		// yt-dlp -J returns a single JSON object. For a playlist the top-level
+		// "_type" is "playlist" and entries live in the "entries" array. For a
+		// single video it's "video".
+		var root struct {
+			Type    string `json:"_type"`
+			Title   string `json:"title"`
+			Entries []struct {
+				URL   string `json:"url"`
+				Title string `json:"title"`
+				ID    string `json:"id"`
+			} `json:"entries"`
+			// single-video fields
+			WebpageURL string `json:"webpage_url"`
+		}
+		if err := json.Unmarshal(out, &root); err != nil {
+			return PlaylistResolvedMsg{
+				OriginalURL: url,
+				Error:       fmt.Errorf("failed to parse playlist JSON: %w", err),
+				Config:      config,
+			}
+		}
+
+		if root.Type != "playlist" {
+			// It's a single video — treat it as a one-item "playlist" so the
+			// caller doesn't need a special code path.
+			videoURL := root.WebpageURL
+			if videoURL == "" {
+				videoURL = url
+			}
+			return PlaylistResolvedMsg{
+				OriginalURL:   url,
+				PlaylistTitle: "",
+				Items:         []PlaylistItem{{URL: videoURL}},
+				Config:        config,
+			}
+		}
+
+		items := make([]PlaylistItem, 0, len(root.Entries))
+		for _, e := range root.Entries {
+			u := e.URL
+			// Flat-playlist entries sometimes only carry an ID, not a full URL.
+			if !strings.HasPrefix(u, "http") && e.ID != "" {
+				u = "https://www.youtube.com/watch?v=" + e.ID
+			}
+			items = append(items, PlaylistItem{URL: u, Title: e.Title})
+		}
+
+		return PlaylistResolvedMsg{
+			OriginalURL:   url,
+			PlaylistTitle: root.Title,
+			Items:         items,
+			Config:        config,
+		}
 	}
 }
 
-func (d *Downloader) Download(entry *DownloadEntry) tea.Cmd {
+// StartDownload runs yt-dlp for a single entry, streaming progress via progressCh.
+func (d *Downloader) StartDownload(entry *DownloadEntry, progressCh chan<- tea.Msg) tea.Cmd {
 	return func() tea.Msg {
-		// Merge configs
 		finalConfig := d.globalConfig.MergeWith(entry.Config)
 
-		// Ensure output directory exists
-		_ = exec.Command("mkdir", "-p", finalConfig.OutputFolder).Run()
-
-		// Build yt-dlp command based on format
-		args := []string{
-			"--newline",
-			"--progress",
-			"--remote-components", "ejs:github",
-			"--extractor-args", "youtube:player-client=web_embedded,tv",
-			"-o", fmt.Sprintf("%s/%%(title)s.%%(ext)s", finalConfig.OutputFolder),
-		}
-
-		// Format-specific options
-		if finalConfig.Format == "mp3" {
-			args = append(args,
-				"-x",
-				"--audio-format", "mp3",
-				"--audio-quality", finalConfig.AudioQuality,
-			)
-		} else if finalConfig.Format == "m4a" {
-			args = append(args,
-				"-x",
-				"--audio-format", "m4a",
-				"--audio-quality", finalConfig.AudioQuality,
-			)
-		} else {
-			// Video format
-			if finalConfig.VideoQuality == "best" {
-				args = append(args, "-f", "bestvideo+bestaudio")
-			} else {
-				args = append(args, "-f", fmt.Sprintf("bestvideo[height<=%s]+bestaudio",
-					strings.TrimSuffix(finalConfig.VideoQuality, "p")))
+		if err := os.MkdirAll(finalConfig.OutputFolder, 0755); err != nil {
+			return DownloadCompleteMsg{
+				ID:    entry.ID,
+				Error: fmt.Errorf("failed to create output directory: %w", err),
 			}
-			args = append(args, "--merge-output-format", finalConfig.Format)
 		}
 
-		args = append(args, entry.URL)
-
+		args := d.buildArgs(finalConfig, entry.URL)
 		cmd := exec.Command("yt-dlp", args...)
+
 		stdout, err := cmd.StdoutPipe()
+		if err != nil {
+			return DownloadCompleteMsg{ID: entry.ID, Error: err}
+		}
+		stderr, err := cmd.StderrPipe()
 		if err != nil {
 			return DownloadCompleteMsg{ID: entry.ID, Error: err}
 		}
@@ -88,126 +218,60 @@ func (d *Downloader) Download(entry *DownloadEntry) tea.Cmd {
 			return DownloadCompleteMsg{ID: entry.ID, Error: err}
 		}
 
-		// Parse progress
-		scanner := bufio.NewScanner(stdout)
-		progressRe := regexp.MustCompile(`(\d+\.\d+)%`)
-		titleFound := false
-		var title string
-		var _ float64
+		progressRe := regexp.MustCompile(`(\d+\.?\d*)%`)
+		// outputPath tracks the final file path, updated as yt-dlp prints its
+		// destination lines. For audio, the post-conversion line wins.
+		var outputPath string
+		var displayTitle string
 
+		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
 			line := scanner.Text()
 
-			// Try to extract title from initial output
-			if !titleFound && strings.Contains(line, "[download] Destination:") {
-				parts := strings.Split(line, ":")
-				if len(parts) > 1 {
-					title = strings.TrimSpace(parts[1])
-					titleFound = true
+			// "[download] Destination: /path/to/file.webm" — initial download target.
+			if strings.Contains(line, "[download] Destination:") {
+				if parts := strings.SplitN(line, "Destination:", 2); len(parts) == 2 {
+					outputPath = strings.TrimSpace(parts[1])
 				}
 			}
 
-			// Extract progress
+			// "[ExtractAudio] Destination: /path/to/file.mp3" — final converted file,
+			// overwrites the webm path so we report the correct extension.
+			if strings.Contains(line, "[ExtractAudio] Destination:") {
+				if parts := strings.SplitN(line, "Destination:", 2); len(parts) == 2 {
+					outputPath = strings.TrimSpace(parts[1])
+				}
+			}
+
+			if displayTitle == "" && outputPath != "" {
+				displayTitle = filepath.Base(outputPath)
+			}
+
 			if matches := progressRe.FindStringSubmatch(line); len(matches) > 1 {
 				if progress, err := strconv.ParseFloat(matches[1], 64); err == nil {
-					_ = progress
-					// Send progress update (we'll handle this via channels in the model)
+					progressCh <- ProgressMsg{ID: entry.ID, Progress: progress, Title: displayTitle}
 				}
 			}
 		}
 
-		err = cmd.Wait()
+		var stderrBuf strings.Builder
+		stderrScanner := bufio.NewScanner(stderr)
+		for stderrScanner.Scan() {
+			stderrBuf.WriteString(stderrScanner.Text())
+			stderrBuf.WriteByte('\n')
+		}
 
-		outputPath := fmt.Sprintf("%s/%s.%s", finalConfig.OutputFolder, title, finalConfig.Format)
-		if err != nil {
-			return DownloadCompleteMsg{ID: entry.ID, Error: err}
+		if err := cmd.Wait(); err != nil {
+			msg := fmt.Sprintf("yt-dlp error: %v", err)
+			if s := strings.TrimSpace(stderrBuf.String()); s != "" {
+				msg += "\n\n" + s
+			}
+			return DownloadCompleteMsg{ID: entry.ID, Error: fmt.Errorf("%s", msg)}
 		}
 
 		return DownloadCompleteMsg{
 			ID:         entry.ID,
 			OutputPath: outputPath,
-			Error:      nil,
-		}
-	}
-}
-
-// StartDownload initiates a download and returns a command that sends progress updates
-func (d *Downloader) StartDownload(entry *DownloadEntry) tea.Cmd {
-	return func() tea.Msg {
-		finalConfig := d.globalConfig.MergeWith(entry.Config)
-
-		// Create output directory
-		if err := exec.Command("mkdir", "-p", finalConfig.OutputFolder).Run(); err != nil {
-			return DownloadCompleteMsg{
-				ID:    entry.ID,
-				Error: fmt.Errorf("failed to create output directory: %v", err),
-			}
-		}
-
-		args := []string{
-			"--newline",
-			"--no-playlist", // Don't download playlists by default
-			"--remote-components", "ejs:github",
-			"--extractor-args", "youtube:player-client=web_embedded,tv",
-			"-o", fmt.Sprintf("%s/%%(title)s.%%(ext)s", finalConfig.OutputFolder),
-		}
-
-		// Add JavaScript runtime if available
-		if d.runtime != "" {
-			args = append(args, "--js-runtimes", d.runtime)
-		}
-
-		if finalConfig.Format == "mp3" {
-			args = append(args, "-x", "--audio-format", "mp3", "--audio-quality", finalConfig.AudioQuality)
-		} else if finalConfig.Format == "m4a" {
-			args = append(args, "-x", "--audio-format", "m4a", "--audio-quality", finalConfig.AudioQuality)
-		} else {
-			if finalConfig.VideoQuality == "best" {
-				args = append(args, "-f", "bestvideo+bestaudio")
-			} else {
-				args = append(args, "-f", fmt.Sprintf("bestvideo[height<=%s]+bestaudio",
-					strings.TrimSuffix(finalConfig.VideoQuality, "p")))
-			}
-			args = append(args, "--merge-output-format", finalConfig.Format)
-		}
-
-		args = append(args, entry.URL)
-
-		cmd := exec.Command("yt-dlp", args...)
-		output, err := cmd.CombinedOutput()
-
-		// Parse output for title and final status
-		outputStr := string(output)
-		lines := strings.Split(outputStr, "\n")
-		var title string
-		for _, line := range lines {
-			if strings.Contains(line, "[download] Destination:") {
-				parts := strings.Split(line, "Destination:")
-				if len(parts) > 1 {
-					title = strings.TrimSpace(parts[1])
-					break
-				}
-			}
-			// Also try to extract from the initial info line
-			if strings.Contains(line, "[download]") && strings.Contains(line, "Downloading") {
-				// Try to get title from this line
-			}
-		}
-
-		if err != nil {
-			// Include the actual output in the error message
-			errorMsg := fmt.Sprintf("yt-dlp error: %v\n\nOutput:\n%s", err, outputStr)
-			return DownloadCompleteMsg{
-				ID:    entry.ID,
-				Error: fmt.Errorf("%s", errorMsg),
-			}
-		}
-
-		outputPath := fmt.Sprintf("%s/%s", finalConfig.OutputFolder, title)
-		return DownloadCompleteMsg{
-			ID:         entry.ID,
-			OutputPath: outputPath,
-			Error:      nil,
 		}
 	}
 }

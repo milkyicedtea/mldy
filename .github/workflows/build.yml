@@ -1,0 +1,64 @@
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build binaries
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '>=1.25'
+
+      - name: Build release
+        shell: bash
+        run: |
+          mkdir -p dist
+          
+          NAME=mldy
+          
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            GOOS=windows GOARCH=amd64 \
+              go build -ldflags="-s -w" -o dist/$NAME.exe .
+          
+          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            GOOS=darwin GOARCH=amd64 \
+              go build -ldflags="-s -w" -o dist/$NAME
+          
+            chmod +x dist/$NAME
+            tar czf dist/$NAME-macos.tar.gz -C dist $NAME
+          
+          else
+            GOOS=linux GOARCH=amd64 \
+              go build -ldflags="-s -w" -o dist/$NAME .
+          
+            strip dist/$NAME || true
+          
+            chmod +x dist/$NAME
+            
+            mkdir -p release
+            cp dist/$NAME release/
+            tar czf dist/$NAME-linux.tar.gz -C release $NAME
+          fi
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.tar.gz
+            dist/*.exe
+
