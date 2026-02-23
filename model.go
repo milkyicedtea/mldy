@@ -192,6 +192,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if m.screen == ScreenInput {
 		m.urlInput, cmd = m.urlInput.Update(msg)
+		// Sanitize pastes on windows which delivers \r\n\ line endings
+		if v := m.urlInput.Value(); strings.ContainsRune(v, '\r') {
+			m.urlInput.SetValue(strings.ReplaceAll(v, "\r", ""))
+		}
 		cmds = append(cmds, cmd)
 	}
 
