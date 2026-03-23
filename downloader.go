@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 // ---- messages ---------------------------------------------------------------
@@ -73,6 +73,8 @@ func (d *Downloader) buildArgs(cfg Config, url string) []string {
 	args := d.baseArgs()
 	args = append(args,
 		"--no-playlist",
+		"--embed-thumbnail",
+		"--embed-metadata",
 		"-o", fmt.Sprintf("%s/%%(title)s.%%(ext)s", cfg.OutputFolder),
 	)
 

@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/progress"
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	zone "github.com/lrstanley/bubblezone"
+	"charm.land/bubbles/v2/progress"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
+	zone "github.com/lrstanley/bubblezone/v2"
 )
 
 type Screen int
@@ -45,7 +46,10 @@ func initialModel(runtime string) Model {
 	ti.Placeholder = "Enter YouTube URL or playlist..."
 	ti.Focus()
 	ti.CharLimit = 500
-	ti.Width = 80
+	ti.SetWidth(80)
+
+	prog := progress.New()
+	prog.SetWidth(80)
 
 	return Model{
 		screen:          ScreenInput,
@@ -55,8 +59,8 @@ func initialModel(runtime string) Model {
 		runtime:         runtime,
 		progressCh:      make(chan tea.Msg, 64),
 		urlInput:        ti,
-		currentProgress: progress.New(progress.WithDefaultGradient()),
-		overallProgress: progress.New(progress.WithDefaultGradient()),
+		currentProgress: prog,
+		overallProgress: prog,
 	}
 }
 
@@ -93,7 +97,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.resolvingCount++
 				return m, m.downloader.ResolvePlaylist(url, EntryConfig{})
 			}
-		case "d":
+		case "ctrl+d":
 			return m.tryStartDownloads()
 		case "backspace", "delete":
 			if m.screen == ScreenInput && m.urlInput.Value() == "" {
@@ -102,8 +106,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	// ── Mouse clicks ─────────────────────────────────────────────────────────
-	case tea.MouseMsg:
-		if msg.Action != tea.MouseActionRelease || msg.Button != tea.MouseButtonLeft {
+	case tea.MouseReleaseMsg:
+		if msg.Button != ansi.MouseLeft {
 			break
 		}
 
@@ -136,10 +140,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
+	case tea.MouseWheelMsg:
+		// Optional: handle scroll if needed
+
 	// ── Domain messages ───────────────────────────────────────────────────────
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+
+		// Update progress bar widths
+		targetWidth := m.width - 20
+		if targetWidth < 20 {
+			targetWidth = 20
+		}
+		m.currentProgress.SetWidth(targetWidth)
+		m.overallProgress.SetWidth(targetWidth)
+
 		return m, nil
 
 	case PlaylistResolvedMsg:
@@ -191,20 +207,33 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if m.screen == ScreenInput {
-		m.urlInput, cmd = m.urlInput.Update(msg)
-		// Sanitize pastes on windows which delivers \r\n\ line endings
-		if v := m.urlInput.Value(); strings.ContainsRune(v, '\r') {
-			m.urlInput.SetValue(strings.ReplaceAll(v, "\r", ""))
+		// On Windows, pastes often contain \r or \n which can crash the renderer
+		// if textinput isn't expecting them (e.g. single-line mode).
+		if p, ok := msg.(tea.PasteMsg); ok {
+			clean := strings.ReplaceAll(p.Content, "\r", "")
+			clean = strings.ReplaceAll(clean, "\n", "")
+			msg = tea.PasteMsg{Content: clean}
 		}
+
+		m.urlInput, cmd = m.urlInput.Update(msg)
+
+		// Fallback sanitization for non-paste inputs (e.g. weird key combos)
+		v := m.urlInput.Value()
+		if strings.ContainsAny(v, "\r\n") {
+			v = strings.ReplaceAll(v, "\r", "")
+			v = strings.ReplaceAll(v, "\n", "")
+			m.urlInput.SetValue(v)
+		}
+
 		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
 }
 
-func (m Model) View() string {
+func (m Model) View() tea.View {
 	if m.width == 0 {
-		return "Loading..."
+		return tea.View{Content: "Loading..."}
 	}
 
 	var s strings.Builder
@@ -224,5 +253,11 @@ func (m Model) View() string {
 	s.WriteString(m.renderFooter())
 
 	// zone.Scan must wrap the entire final output at the root model level.
-	return zone.Scan(s.String())
+	content := zone.Scan(s.String())
+
+	return tea.View{
+		Content:   content,
+		AltScreen: true,
+		MouseMode: tea.MouseModeCellMotion,
+	}
 }

@@ -3,7 +3,7 @@ package main
 import (
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 )
 
 func (m Model) renderFooter() string {
@@ -16,15 +16,15 @@ func (m Model) renderFooter() string {
 		if m.resolvingCount > 0 {
 			helps = append(helps, "resolving...")
 		} else if m.isRunning {
-			helps = append(helps, "d: downloading...")
+			helps = append(helps, "ctrl+d: downloading...")
 		} else if len(m.queue.GetQueued()) > 0 {
-			helps = append(helps, "d: start  •  backspace: remove last")
+			helps = append(helps, "ctrl+d: start  •  backspace: remove last")
 		}
 	case ScreenDownload:
 		if m.isRunning {
 			helps = append(helps, "downloading...")
 		} else if len(m.queue.GetQueued()) > 0 {
-			helps = append(helps, "d: start downloads")
+			helps = append(helps, "ctrl+d: start downloads")
 		}
 	case ScreenHistory:
 		if len(m.queue.GetCompleted()) == 0 {

@@ -7,8 +7,8 @@ import (
 	"os/exec"
 	rt "runtime"
 
-	tea "github.com/charmbracelet/bubbletea"
-	zone "github.com/lrstanley/bubblezone"
+	tea "charm.land/bubbletea/v2"
+	zone "github.com/lrstanley/bubblezone/v2"
 )
 
 func main() {
@@ -89,8 +89,8 @@ func main() {
 
 	p := tea.NewProgram(
 		initialModel(runtime),
-		tea.WithAltScreen(),
-		tea.WithMouseCellMotion(), // enables click events
+		// tea.WithAltScreen(),
+		// tea.WithMouseCellMotion(), // enables click events
 	)
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Error: %v\n", err)
@@ -114,8 +114,7 @@ func restartSelf() {
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
+		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 			os.Exit(exitErr.ExitCode())
 		}
 		os.Exit(1)

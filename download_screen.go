@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 )
 
 func (m Model) renderDownloadScreen() string {
@@ -42,7 +42,8 @@ func (m Model) renderDownloadScreen() string {
 	s.WriteString("\n")
 	totalProg := m.queue.TotalProgress()
 	s.WriteString(m.overallProgress.ViewAs(totalProg / 100.0))
-	s.WriteString(fmt.Sprintf(" %.1f%%", totalProg))
+	s.WriteString(" / ")
+	s.WriteString(fmt.Sprintf("%.1f%%", totalProg))
 
 	completed := len(m.queue.GetCompleted())
 	total := len(m.queue.Entries)
