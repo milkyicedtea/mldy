@@ -28,6 +28,3 @@ The tool will automatically prompt to install missing dependencies.
 ## Usage
 
 Run the executable and use the TUI to add URLs and manage downloads.
-
-## License
-[MIT](https://opensource.org/license/mit)
