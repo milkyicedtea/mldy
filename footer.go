@@ -13,6 +13,12 @@ func (m Model) renderFooter() string {
 	switch m.screen {
 	case ScreenInput:
 		helps = append(helps, "enter: add URL")
+		if m.urlInput.Focused() {
+			helps = append(helps, "down: focus list")
+		} else {
+			helps = append(helps, "up: focus input", "enter: expand", "s: start", "d: delete")
+		}
+		
 		if m.resolvingCount > 0 {
 			helps = append(helps, "resolving...")
 		} else if m.isRunning {

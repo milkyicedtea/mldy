@@ -31,6 +31,7 @@ func (s DownloadStatus) String() string {
 
 // PlaylistMeta is set on entries that were expanded from a playlist.
 type PlaylistMeta struct {
+	BatchID       string // Unique ID for this specific addition
 	PlaylistTitle string
 	Index         int // 1-based position within the playlist
 	Total         int // total number of items in the playlist
@@ -101,8 +102,10 @@ func (q *Queue) Add(url string, config EntryConfig) {
 // AddPlaylistItems expands a resolved playlist into individual queue entries.
 func (q *Queue) AddPlaylistItems(items []PlaylistItem, playlistTitle string, config EntryConfig) {
 	total := len(items)
+	batchID := fmt.Sprintf("pl-%d", time.Now().UnixNano())
 	for i, item := range items {
 		q.add(item.URL, item.Title, &PlaylistMeta{
+			BatchID:       batchID,
 			PlaylistTitle: playlistTitle,
 			Index:         i + 1,
 			Total:         total,

@@ -168,7 +168,7 @@ func (d *Downloader) ResolvePlaylist(url string, config EntryConfig) tea.Cmd {
 			return PlaylistResolvedMsg{
 				OriginalURL:   url,
 				PlaylistTitle: "",
-				Items:         []PlaylistItem{{URL: videoURL}},
+				Items:         []PlaylistItem{{URL: videoURL, Title: root.Title}},
 				Config:        config,
 			}
 		}

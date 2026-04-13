@@ -9,6 +9,18 @@ A terminal UI for downloading videos using yt-dlp.
 - Automatic dependency installation (yt-dlp, ffmpeg, JavaScript runtime)
 - Cross-platform support (Windows, Linux, macOS)
 
+## Screenshots
+<table>
+  <tr>
+    <td><img src="screenshots/input-queue-empty.png" alt="Input/Queue Tab Empty"/>
+    <td><img src="screenshots/input-queue-full.png" alt="Input/Queue Tab Full"/>
+  </tr>
+  <tr>
+    <td><img src="screenshots/downloads.png" alt="Downloads Tab"/>
+    <td><img src="screenshots/history.png" alt="History Tab"/>
+  </tr>
+</table>
+
 ## Requirements
 
 - Go 1.25+
