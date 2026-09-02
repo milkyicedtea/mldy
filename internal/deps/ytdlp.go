@@ -1,4 +1,4 @@
-package main
+package deps
 
 import (
 	"errors"
@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-func installYtDlp() error {
+func InstallYtDlp() error {
 	var prefix []string
 	if rt.GOOS != "windows" && os.Geteuid() != 0 {
 		prefix = []string{"sudo"}
@@ -83,7 +83,7 @@ func installYtDlp() error {
 	}
 }
 
-func printYtDlpGuide() {
+func PrintYtDlpGuide() {
 	fmt.Println("\nManual yt-dlp installation:")
 	fmt.Println("macOS:   brew install yt-dlp")
 	fmt.Println("Linux:   check your distro's package manager, or use github yt-dlp releases")

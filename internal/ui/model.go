@@ -1,4 +1,4 @@
-package main
+package ui
 
 import (
 	"fmt"
@@ -9,6 +9,9 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 	zone "github.com/lrstanley/bubblezone/v2"
+
+	"mldy/internal/config"
+	"mldy/internal/download"
 )
 
 type Screen int
@@ -21,9 +24,9 @@ const (
 
 type Model struct {
 	screen     Screen
-	config     Config
+	config     config.Config
 	queue      *Queue
-	downloader *Downloader
+	downloader *download.Downloader
 	runtime    string
 
 	isRunning      bool
@@ -46,8 +49,8 @@ type Model struct {
 	expanded      map[string]bool // key: formatted BatchID
 }
 
-func initialModel(runtime string) Model {
-	config, _ := loadConfig()
+func InitialModel(runtime string) Model {
+	cfg, _ := config.LoadConfig()
 
 	ti := textinput.New()
 	ti.Placeholder = "Enter YouTube URL or playlist..."
@@ -60,9 +63,9 @@ func initialModel(runtime string) Model {
 
 	return Model{
 		screen:          ScreenInput,
-		config:          config,
+		config:          cfg,
 		queue:           NewQueue(),
-		downloader:      NewDownloader(config, runtime),
+		downloader:      download.NewDownloader(cfg, runtime),
 		runtime:         runtime,
 		progressCh:      make(chan tea.Msg, 64),
 		urlInput:        ti,
@@ -116,7 +119,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 					m.urlInput.SetValue("")
 					m.resolvingCount++
-					return m, m.downloader.ResolvePlaylist(url, EntryConfig{})
+					return m, m.downloader.ResolvePlaylist(url, config.EntryConfig{})
 				case "down":
 					// Focus list if items exist
 					if len(m.queue.GetQueued()) > 0 {
@@ -176,7 +179,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						row := rows[m.queueCursor]
 						if row.IsHeader {
 							// Remove all in batch. Needs helper in Queue potentially but raw loop works.
-							var newEntries []DownloadEntry
+							var newEntries []download.DownloadEntry
 							for _, e := range m.queue.Entries {
 								if e.Playlist == nil || e.Playlist.BatchID != row.BatchID {
 									newEntries = append(newEntries, e)
@@ -245,7 +248,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if len(rows) > 0 {
 					row := rows[m.historyCursor]
 					if row.IsHeader {
-						var newEntries []DownloadEntry
+						var newEntries []download.DownloadEntry
 						for _, e := range m.queue.Entries {
 							if e.Playlist == nil || e.Playlist.BatchID != row.BatchID {
 								newEntries = append(newEntries, e)
@@ -320,7 +323,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				if zone.Get(zoneRemovePlaylist(batchID)).InBounds(msg) {
 					// Remove entire batch
-					var newEntries []DownloadEntry
+					var newEntries []download.DownloadEntry
 					for _, e := range m.queue.Entries {
 						if e.Playlist == nil || e.Playlist.BatchID != batchID {
 							newEntries = append(newEntries, e)
@@ -494,13 +497,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return m, nil
 
-	case PlaylistResolvedMsg:
+	case download.PlaylistResolvedMsg:
 		m.resolvingCount--
 		if msg.Error != nil {
 			m.queue.Add(msg.OriginalURL, msg.Config)
 			id := m.queue.Entries[len(m.queue.Entries)-1].ID
-			m.queue.Update(id, func(e *DownloadEntry) {
-				e.Status = StatusFailed
+			m.queue.Update(id, func(e *download.DownloadEntry) {
+				e.Status = download.StatusFailed
 				e.Error = fmt.Sprintf("playlist resolve error: %v", msg.Error)
 			})
 			return m, nil
@@ -512,13 +515,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.queue.Add(item.URL, msg.Config)
 			if item.Title != "" {
 				id := m.queue.Entries[len(m.queue.Entries)-1].ID
-				m.queue.Update(id, func(e *DownloadEntry) { e.Title = item.Title })
+				m.queue.Update(id, func(e *download.DownloadEntry) { e.Title = item.Title })
 			}
 		}
 		return m, nil
 
-	case ProgressMsg:
-		m.queue.Update(msg.ID, func(e *DownloadEntry) {
+	case download.ProgressMsg:
+		m.queue.Update(msg.ID, func(e *download.DownloadEntry) {
 			e.Progress = msg.Progress
 			if msg.Title != "" {
 				e.Title = msg.Title
@@ -526,13 +529,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		})
 		return m, listenProgress(m.progressCh)
 
-	case DownloadCompleteMsg:
-		m.queue.Update(msg.ID, func(e *DownloadEntry) {
+	case download.DownloadCompleteMsg:
+		m.queue.Update(msg.ID, func(e *download.DownloadEntry) {
 			if msg.Error != nil {
-				e.Status = StatusFailed
+				e.Status = download.StatusFailed
 				e.Error = msg.Error.Error()
 			} else {
-				e.Status = StatusCompleted
+				e.Status = download.StatusCompleted
 				e.OutputPath = msg.OutputPath
 			}
 		})

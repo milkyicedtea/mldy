@@ -1,4 +1,4 @@
-package main
+package deps
 
 import (
 	"os"
@@ -25,14 +25,11 @@ func detectLinuxDistro() (id string, idLike string, err error) {
 }
 
 func runPackageManager(prefix []string, packageManager string, args ...string) error {
-	cmd := packageManager
-	cmdArgs := args
-
 	if len(prefix) > 0 {
-		cmd = prefix[0]
-		cmdArgs = append(prefix[1:], packageManager)
-		cmdArgs = append(cmdArgs, cmdArgs...)
+		full := append([]string{}, prefix...)
+		full = append(full, packageManager)
+		full = append(full, args...)
+		return run(full[0], full[1:]...)
 	}
-
-	return run(cmd, cmdArgs...)
+	return run(packageManager, args...)
 }

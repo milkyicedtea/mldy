@@ -1,4 +1,4 @@
-package main
+package download
 
 import (
 	"bufio"
@@ -12,6 +12,8 @@ import (
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+
+	"mldy/internal/config"
 )
 
 // ---- messages ---------------------------------------------------------------
@@ -40,18 +42,18 @@ type PlaylistResolvedMsg struct {
 	PlaylistTitle string
 	Items         []PlaylistItem
 	Error         error
-	Config        EntryConfig
+	Config        config.EntryConfig
 }
 
 // ---- downloader -------------------------------------------------------------
 
 type Downloader struct {
-	globalConfig Config
+	globalConfig config.Config
 	runtime      string
 }
 
-func NewDownloader(config Config, runtime string) *Downloader {
-	return &Downloader{globalConfig: config, runtime: runtime}
+func NewDownloader(cfg config.Config, runtime string) *Downloader {
+	return &Downloader{globalConfig: cfg, runtime: runtime}
 }
 
 // baseArgs returns the args common to every yt-dlp invocation.
@@ -69,7 +71,7 @@ func (d *Downloader) baseArgs() []string {
 }
 
 // buildArgs constructs the full yt-dlp argument list for a single video download.
-func (d *Downloader) buildArgs(cfg Config, url string) []string {
+func (d *Downloader) buildArgs(cfg config.Config, url string) []string {
 	args := d.baseArgs()
 	args = append(args,
 		"--no-playlist",
@@ -80,23 +82,23 @@ func (d *Downloader) buildArgs(cfg Config, url string) []string {
 
 	// Resolve effective kind when set to auto.
 	kind := cfg.Kind
-	if kind == KindAuto {
+	if kind == config.KindAuto {
 		switch cfg.Format {
 		case "mp3", "m4a", "opus", "flac", "wav", "aac":
-			kind = KindAudio
+			kind = config.KindAudio
 		default:
-			kind = KindVideo
+			kind = config.KindVideo
 		}
 	}
 
 	switch kind {
-	case KindAudio:
+	case config.KindAudio:
 		args = append(args,
 			"-x",
 			"--audio-format", cfg.Format,
 			"--audio-quality", string(cfg.AudioQuality),
 		)
-	case KindVideo:
+	case config.KindVideo:
 		if cfg.VideoQuality == "best" {
 			args = append(args, "-f", "bestvideo+bestaudio")
 		} else {
@@ -114,7 +116,7 @@ func (d *Downloader) buildArgs(cfg Config, url string) []string {
 
 // ResolvePlaylist runs yt-dlp with --flat-playlist to enumerate playlist items
 // without downloading anything, then sends a PlaylistResolvedMsg.
-func (d *Downloader) ResolvePlaylist(url string, config EntryConfig) tea.Cmd {
+func (d *Downloader) ResolvePlaylist(url string, cfg config.EntryConfig) tea.Cmd {
 	return func() tea.Msg {
 		args := []string{
 			"--flat-playlist",
@@ -132,7 +134,7 @@ func (d *Downloader) ResolvePlaylist(url string, config EntryConfig) tea.Cmd {
 			return PlaylistResolvedMsg{
 				OriginalURL: url,
 				Error:       fmt.Errorf("failed to resolve playlist: %w", err),
-				Config:      config,
+				Config:      cfg,
 			}
 		}
 
@@ -154,7 +156,7 @@ func (d *Downloader) ResolvePlaylist(url string, config EntryConfig) tea.Cmd {
 			return PlaylistResolvedMsg{
 				OriginalURL: url,
 				Error:       fmt.Errorf("failed to parse playlist JSON: %w", err),
-				Config:      config,
+				Config:      cfg,
 			}
 		}
 
@@ -169,7 +171,7 @@ func (d *Downloader) ResolvePlaylist(url string, config EntryConfig) tea.Cmd {
 				OriginalURL:   url,
 				PlaylistTitle: "",
 				Items:         []PlaylistItem{{URL: videoURL, Title: root.Title}},
-				Config:        config,
+				Config:        cfg,
 			}
 		}
 
@@ -187,7 +189,7 @@ func (d *Downloader) ResolvePlaylist(url string, config EntryConfig) tea.Cmd {
 			OriginalURL:   url,
 			PlaylistTitle: root.Title,
 			Items:         items,
-			Config:        config,
+			Config:        cfg,
 		}
 	}
 }

@@ -9,20 +9,23 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	zone "github.com/lrstanley/bubblezone/v2"
+
+	"mldy/internal/deps"
+	"mldy/internal/ui"
 )
 
 func main() {
 	// ── yt-dlp ───────────────────────────────────────────────────────────────
 	if _, err := exec.LookPath("yt-dlp"); err != nil {
 		fmt.Println("yt-dlp not found.")
-		if askYesNo("Install yt-dlp now?") {
-			if err := installYtDlp(); err != nil {
+		if deps.AskYesNo("Install yt-dlp now?") {
+			if err := deps.InstallYtDlp(); err != nil {
 				fmt.Println("Auto-install failed:", err)
-				printYtDlpGuide()
+				deps.PrintYtDlpGuide()
 				os.Exit(1)
 			}
 		} else {
-			printYtDlpGuide()
+			deps.PrintYtDlpGuide()
 			os.Exit(1)
 		}
 	}
@@ -30,35 +33,38 @@ func main() {
 	// ── ffmpeg ────────────────────────────────────────────────────────────────
 	if _, err := exec.LookPath("ffmpeg"); err != nil {
 		fmt.Println("ffmpeg not found.")
-		if askYesNo("Install ffmpeg now?") {
-			if err := installFfmpeg(); err != nil {
+		if deps.AskYesNo("Install ffmpeg now?") {
+			if err := deps.InstallFfmpeg(); err != nil {
 				fmt.Println("Auto-install failed:", err)
-				printFfmpegGuide()
+				deps.PrintFfmpegGuide()
 				os.Exit(1)
 			}
 		} else {
-			printFfmpegGuide()
+			deps.PrintFfmpegGuide()
 			os.Exit(1)
 		}
 	}
 
+	// ── update check (yt-dlp daily; ffmpeg piggybacks) ──────────────────────
+	deps.CheckUpdates()
+
 	// ── JS runtime ────────────────────────────────────────────────────────────
-	runtime, found, meetsRecommended := detectRuntime()
+	runtime, found, meetsRecommended := deps.DetectRuntime()
 
 	if !found {
 		fmt.Println("No suitable JavaScript runtime found (deno ≥2, bun ≥1.0.31, node ≥20).")
 
-		if askYesNo("Install Deno now? (recommended)") {
-			if err := installDeno(); err != nil {
+		if deps.AskYesNo("Install Deno now? (recommended)") {
+			if err := deps.InstallDeno(); err != nil {
 				fmt.Println("Auto-install failed:", err)
-				printDenoGuide()
+				deps.PrintDenoGuide()
 			} else {
 				// On Windows the PATH isn't refreshed in the current process
 				// after an installation, so we need to relaunch.
 				if rt.GOOS == "windows" {
 					restartSelf()
 				}
-				runtime, found, meetsRecommended = detectRuntime()
+				runtime, found, meetsRecommended = deps.DetectRuntime()
 			}
 		}
 
@@ -71,8 +77,8 @@ func main() {
 
 	// Offer an upgrade only when the installed version is below the recommended threshold.
 	if found && !meetsRecommended {
-		if askYesNoDefaultNo(fmt.Sprintf("Upgrade %s to the recommended version?", runtime)) {
-			if err := updateRuntime(runtime); err != nil {
+		if deps.AskYesNoDefaultNo(fmt.Sprintf("Upgrade %s to the recommended version?", runtime)) {
+			if err := deps.UpdateRuntime(runtime); err != nil {
 				fmt.Printf("Upgrade failed: %v\n", err)
 			} else {
 				fmt.Printf("%s upgraded successfully.\n", runtime)
@@ -88,7 +94,7 @@ func main() {
 	defer zone.Close()
 
 	p := tea.NewProgram(
-		initialModel(runtime),
+		ui.InitialModel(runtime),
 		// tea.WithAltScreen(),
 		// tea.WithMouseCellMotion(), // enables click events
 	)

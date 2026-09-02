@@ -1,4 +1,4 @@
-package main
+package deps
 
 import (
 	"errors"
@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func installFfmpeg() error {
+func InstallFfmpeg() error {
 	var prefix []string
 	if rt.GOOS != "windows" && os.Geteuid() != 0 {
 		prefix = []string{"sudo"}
@@ -57,7 +57,7 @@ func installFfmpeg() error {
 	}
 }
 
-func printFfmpegGuide() {
+func PrintFfmpegGuide() {
 	fmt.Println("\nManual ffmpeg installation:")
 	fmt.Println("macOS:   brew install ffmpeg")
 	fmt.Println("Linux:   check your distro's package manager")

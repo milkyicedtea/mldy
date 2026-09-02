@@ -1,9 +1,11 @@
-package main
+package ui
 
 import (
 	"fmt"
 
 	tea "charm.land/bubbletea/v2"
+
+	"mldy/internal/download"
 )
 
 // Zone IDs for clickable regions.
@@ -55,7 +57,7 @@ func (m Model) startNextDownload() tea.Cmd {
 		return nil
 	}
 	entry := queued[0]
-	m.queue.Update(entry.ID, func(e *DownloadEntry) { e.Status = StatusDownloading })
+	m.queue.Update(entry.ID, func(e *download.DownloadEntry) { e.Status = download.StatusDownloading })
 	return tea.Batch(
 		m.downloader.StartDownload(m.queue.GetByID(entry.ID), m.progressCh),
 		listenProgress(m.progressCh),
@@ -82,11 +84,11 @@ type ListRow struct {
 	IsHeader      bool
 	PlaylistTitle string
 	BatchID       string
-	EntryID       int            // valid only if !IsHeader
-	Entry         *DownloadEntry // valid only if !IsHeader
+	EntryID       int                     // valid only if !IsHeader
+	Entry         *download.DownloadEntry // valid only if !IsHeader
 }
 
-func calculateListRows(entries []DownloadEntry, expanded map[string]bool) []ListRow {
+func calculateListRows(entries []download.DownloadEntry, expanded map[string]bool) []ListRow {
 	var rows []ListRow
 	lastBatchID := ""
 

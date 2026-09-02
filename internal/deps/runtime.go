@@ -1,4 +1,4 @@
-package main
+package deps
 
 import (
 	"errors"
@@ -158,7 +158,7 @@ func checkRuntimeVersion(runtime string) (bool, bool, error) {
 
 // updateRuntime attempts to upgrade the given runtime to its latest version.
 // Returns true if the update succeeded and the program should restart on Windows.
-func updateRuntime(runtime string) error {
+func UpdateRuntime(runtime string) error {
 	fmt.Printf("Updating %s...\n", runtime)
 	switch runtime {
 	case "deno":
@@ -209,7 +209,7 @@ func updateRuntime(runtime string) error {
 }
 
 // installDeno installs Deno from scratch.
-func installDeno() error {
+func InstallDeno() error {
 	switch rt.GOOS {
 	case "darwin", "linux":
 		return run("sh", "-c", "curl -fsSL https://deno.land/install.sh | sh")
@@ -220,7 +220,7 @@ func installDeno() error {
 	}
 }
 
-func printDenoGuide() {
+func PrintDenoGuide() {
 	fmt.Println("\nManual Deno installation:")
 	fmt.Println("macOS/Linux: curl -fsSL https://deno.land/install.sh | sh")
 	fmt.Println("Windows:     winget install DenoLand.Deno")
@@ -230,7 +230,7 @@ func printDenoGuide() {
 // detectRuntime finds the first available JS runtime that meets the minimum
 // version requirement. Preference order: deno > bun > node.
 // Returns (runtimeName, meetsMinimum, meetsRecommended).
-func detectRuntime() (string, bool, bool) {
+func DetectRuntime() (string, bool, bool) {
 	for _, runtime := range []string{"deno", "bun", "node"} {
 		if _, err := exec.LookPath(runtime); err != nil {
 			continue

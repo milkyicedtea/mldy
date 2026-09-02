@@ -1,4 +1,4 @@
-package main
+package ui
 
 import (
 	"strings"
@@ -18,7 +18,7 @@ func (m Model) renderFooter() string {
 		} else {
 			helps = append(helps, "up: focus input", "enter: expand", "s: start", "d: delete")
 		}
-		
+
 		if m.resolvingCount > 0 {
 			helps = append(helps, "resolving...")
 		} else if m.isRunning {

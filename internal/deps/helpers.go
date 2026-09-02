@@ -1,4 +1,4 @@
-package main
+package deps
 
 import (
 	"fmt"
@@ -7,11 +7,11 @@ import (
 	"strings"
 )
 
-func askYesNo(prompt string) bool {
+func AskYesNo(prompt string) bool {
 	return askYesNoDefault(prompt, true)
 }
 
-func askYesNoDefaultNo(prompt string) bool {
+func AskYesNoDefaultNo(prompt string) bool {
 	return askYesNoDefault(prompt, false)
 }
 

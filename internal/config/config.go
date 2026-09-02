@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"fmt"
@@ -77,7 +77,7 @@ func defaultConfig() Config {
 	}
 }
 
-func loadConfig() (Config, error) {
+func LoadConfig() (Config, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return defaultConfig(), nil

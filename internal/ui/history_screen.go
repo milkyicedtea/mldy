@@ -1,4 +1,4 @@
-package main
+package ui
 
 import (
 	"fmt"
@@ -6,6 +6,8 @@ import (
 
 	"charm.land/lipgloss/v2"
 	zone "github.com/lrstanley/bubblezone/v2"
+
+	"mldy/internal/download"
 )
 
 func (m Model) renderHistoryScreen() string {
@@ -79,7 +81,7 @@ func (m Model) renderHistoryScreen() string {
 			}
 
 			icon := successStyle.Render("✓")
-			if row.Entry.Status == StatusFailed {
+			if row.Entry.Status == download.StatusFailed {
 				icon = failStyle.Render("✗")
 			}
 
@@ -104,7 +106,7 @@ func (m Model) renderHistoryScreen() string {
 			// Error details (only if selected or always? Always is better but minimal space)
 			// Or maybe only if expanded logic?
 			// Let's keep existing logic: show error if failed.
-			if row.Entry.Status == StatusFailed && row.Entry.Error != "" {
+			if row.Entry.Status == download.StatusFailed && row.Entry.Error != "" {
 				// We render error lines below the item.
 				// This complicates "Row" abstraction if error takes multiple lines.
 				// For now, let's just indent it.
