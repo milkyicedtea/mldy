@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"io"
 	"sync"
 
@@ -259,4 +260,60 @@ func (s *Service) ClearAll() {
 	s.queue.Clear()
 	s.mu.Unlock()
 	s.emit()
+}
+
+// UpdateConfig validates and persists a new global configuration, applies it
+// to the downloader, and emits the new state. A pinned JS runtime must be
+// installed; "auto" re-runs detection (deno > bun > node).
+func (s *Service) UpdateConfig(cfg config.Config) error {
+	switch {
+	case !cfg.Kind.IsValid():
+		return fmt.Errorf("invalid kind: %q", cfg.Kind)
+	case !cfg.AudioQuality.IsValid():
+		return fmt.Errorf("invalid audio quality: %q", cfg.AudioQuality)
+	case !config.ValidJSRuntime(cfg.JSRuntime):
+		return fmt.Errorf("invalid JS runtime: %q", cfg.JSRuntime)
+	}
+	if cfg.JSRuntime == "" {
+		cfg.JSRuntime = "auto"
+	}
+
+	s.mu.Lock()
+	if cfg.JSRuntime != "auto" {
+		if !deps.RuntimeAvailable(cfg.JSRuntime) {
+			s.mu.Unlock()
+			return fmt.Errorf("js runtime %q is not installed", cfg.JSRuntime)
+		}
+		s.runtime = cfg.JSRuntime
+	} else if runtime, _, found := deps.DetectRuntime(); found {
+		s.runtime = runtime
+	}
+	s.cfg = cfg
+	s.dl.SetConfig(cfg, s.runtime)
+	s.mu.Unlock()
+
+	if err := config.Save(cfg); err != nil {
+		return err
+	}
+	s.emit()
+	return nil
+}
+
+// PickOutputFolder opens a native directory chooser (GTK on Linux, WebView2
+// on Windows, NSOpenPanel on macOS) and returns the selected path. An empty
+// string means the dialog was cancelled.
+func (s *Service) PickOutputFolder() (string, error) {
+	a := application.Get()
+	if a == nil {
+		return "", fmt.Errorf("application not ready")
+	}
+	builder := a.Dialog.OpenFile().
+		CanChooseDirectories(true).
+		CanChooseFiles(false).
+		CanCreateDirectories(true).
+		SetTitle("Choose output folder")
+	if win := a.Window.Current(); win != nil {
+		builder = builder.AttachToWindow(win)
+	}
+	return builder.PromptForSingleSelection()
 }

@@ -1,8 +1,10 @@
 <script lang="ts">
+import { fade } from 'svelte/transition'
 import {
   addURL,
   label,
   listRows,
+  openSettings,
   queued,
   removeBatch,
   removeEntry,
@@ -28,6 +30,16 @@ function onKeydown(e: KeyboardEvent): void {
     addURL()
   }
 }
+
+// A paste of multiple URLs queues them all directly; a single URL is left
+// in the input for the user to confirm with Enter.
+function onPaste(e: ClipboardEvent): void {
+  const text = e.clipboardData?.getData('text') ?? ''
+  if (text.split(/\s+/).filter(Boolean).length > 1) {
+    e.preventDefault()
+    addURL(text)
+  }
+}
 </script>
 
 <h1 class="title">Add URLs to Queue</h1>
@@ -38,6 +50,7 @@ function onKeydown(e: KeyboardEvent): void {
   placeholder="Paste a video or playlist URL, then press Enter"
   bind:value={ui.url}
   onkeydown={onKeydown}
+  onpaste={onPaste}
   onfocus={() => (ui.inputFocused = true)}
 />
 
@@ -46,32 +59,32 @@ function onKeydown(e: KeyboardEvent): void {
 {/if}
 
 {#if rows.length === 0 && resolving === 0}
-  <p class="dim">No items in queue</p>
+  <p class="dim empty">Queue is empty — paste a video or playlist URL above, then press Enter.</p>
 {:else}
   <p class="section">Queued ({queued().length}):</p>
   <ul class="list" role="listbox" aria-label="Queue">
     {#each rows as row, i (row.kind === 'header' ? row.batchId : row.entry.id)}
       {#if row.kind === 'header'}
-        <li class="row header" class:selected={i === ui.queueCursor && !ui.inputFocused}>
+        <li class="row header" class:selected={i === ui.queueCursor && !ui.inputFocused} transition:fade={{ duration: 150 }}>
           <button class="row-main playlist" onclick={() => { selectRow(i); toggleExpand(row.batchId); }}>
             <span class="arrow">{ui.expanded.has(row.batchId) ? '▼' : '▶'}</span>
             {row.title}
             <span class="dim">({row.count})</span>
           </button>
           <span class="actions">
-            <button class="btn start" title="Start downloads" onclick={start}>▶</button>
+            <button class="btn start" title="Start downloads" disabled={isRunning} onclick={start}>▶</button>
             <button class="btn remove" title="Remove playlist" onclick={() => removeBatch(row.batchId)}>✕</button>
           </span>
         </li>
       {:else}
-        <li class="row" class:selected={i === ui.queueCursor && !ui.inputFocused}>
+        <li class="row" class:selected={i === ui.queueCursor && !ui.inputFocused} transition:fade={{ duration: 150 }}>
           <button class="row-main" class:playlist-item={!!row.entry.playlist}
                   onclick={() => selectRow(i)}>
             {#if row.entry.playlist}<span class="idx">{row.entry.playlist.Index}/{row.entry.playlist.Total}</span>{/if}
             <span class="label">{label(row.entry)}</span>
           </button>
           <span class="actions">
-            <button class="btn start" title="Start downloads" onclick={start}>▶</button>
+            <button class="btn start" title="Start downloads" disabled={isRunning} onclick={start}>▶</button>
             <button class="btn remove" title="Remove" onclick={() => removeEntry(row.entry.id)}>✕</button>
           </span>
         </li>
@@ -90,7 +103,7 @@ function onKeydown(e: KeyboardEvent): void {
 
 {#if config}
   <section class="config">
-    <p class="section">Current Config:</p>
+    <p class="section">Current Config: <button class="linkish" onclick={openSettings}>edit</button></p>
     <dl>
       <div><dt>Kind</dt><dd>{config.Kind}</dd></div>
       <div><dt>Format</dt><dd>{config.Format}</dd></div>
@@ -141,7 +154,14 @@ function onKeydown(e: KeyboardEvent): void {
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 1px 0;
+    padding: 2px 0;
+  }
+  .row:hover {
+    background: var(--hover);
+  }
+  .row.selected {
+    background: rgba(215, 95, 215, 0.09);
+    box-shadow: inset 3px 0 0 var(--select);
   }
   .row.selected .row-main,
   .row.selected .idx {
@@ -200,7 +220,11 @@ function onKeydown(e: KeyboardEvent): void {
   }
   .btn.start { color: var(--green); }
   .btn.remove { color: var(--red); }
-  .btn:hover { background: var(--hover); }
+  .btn:hover:not(:disabled) { background: var(--hover); }
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
   .hint {
     margin-top: 10px;
   }

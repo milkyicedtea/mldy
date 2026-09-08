@@ -1,4 +1,5 @@
 <script lang="ts">
+import { flip } from 'svelte/animate'
 import {
   active,
   completed,
@@ -20,11 +21,15 @@ const queuedCount = $derived(entries().filter((e) => e.status === 'queued').leng
 <h1 class="title">Active Downloads</h1>
 
 {#if activeList.length === 0}
-  <p class="dim">No active downloads</p>
+  {#if queuedCount > 0}
+    <p class="dim">{queuedCount} waiting in queue — Ctrl+Enter to start</p>
+  {:else}
+    <p class="dim">Nothing downloading. Add URLs in the Input/Queue tab.</p>
+  {/if}
 {:else}
   <ul class="list">
     {#each activeList as entry (entry.id)}
-      <li class="item">
+      <li class="item" animate:flip={{ duration: 200 }}>
         <p class="name">{playlistPrefix(entry)}{label(entry)}</p>
         <div class="bar"><div class="fill" style={`width:${Math.min(100, entry.progress)}%`}></div></div>
         <span class="pct">{entry.progress.toFixed(1)}%</span>
@@ -33,7 +38,7 @@ const queuedCount = $derived(entries().filter((e) => e.status === 'queued').leng
   </ul>
 {/if}
 
-<section class="overall">
+<section class="overall" class:running={running}>
   <p class="section">Overall Progress:</p>
   <div class="overall-row">
     <div class="bar"><div class="fill" style={`width:${Math.min(100, overall)}%`}></div></div>
@@ -42,8 +47,6 @@ const queuedCount = $derived(entries().filter((e) => e.status === 'queued').leng
   <p class="dim">Completed: {completedCount}/{total}</p>
   {#if running}
     <p class="dim">downloading…</p>
-  {:else if queuedCount > 0}
-    <p class="dim">Ctrl+Enter: start downloads</p>
   {/if}
 </section>
 
@@ -81,6 +84,18 @@ const queuedCount = $derived(entries().filter((e) => e.status === 'queued').leng
     height: 100%;
     background: var(--green);
     transition: width 0.2s ease;
+  }
+  @keyframes pulse {
+    from {
+      opacity: 0.65;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  .item .fill,
+  .overall.running .fill {
+    animation: pulse 1.2s ease-in-out infinite alternate;
   }
   .pct {
     margin-left: 8px;

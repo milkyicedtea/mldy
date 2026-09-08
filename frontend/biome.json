@@ -64,6 +64,16 @@
           }
         }
       }
+    },
+    {
+      "includes": ["**/src/**/*.css"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noImportantStyles": "off"
+          }
+        }
+      }
     }
   ],
   "files": {

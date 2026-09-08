@@ -1,4 +1,5 @@
 <script lang="ts">
+import { fade } from 'svelte/transition'
 import { completed, label, listRows, removeEntry, toggleExpand, ui } from '@/lib/store.svelte'
 
 const rows = $derived(listRows(completed(), ui.expanded))
@@ -11,20 +12,19 @@ function selectRow(i: number): void {
 <h1 class="title">Download History</h1>
 
 {#if rows.length === 0}
-  <p class="dim">No completed downloads</p>
+  <p class="dim">No completed downloads yet — downloads land here once they finish.</p>
 {:else}
   <ul class="list" role="listbox" aria-label="History">
     {#each rows as row, i (row.kind === 'header' ? row.batchId : row.entry.id)}
       {#if row.kind === 'header'}
-        <li class="row header" class:selected={i === ui.historyCursor}>
+        <li class="row header" class:selected={i === ui.historyCursor} transition:fade={{ duration: 150 }}>
           <button class="row-main playlist" onclick={() => { selectRow(i); toggleExpand(row.batchId); }}>
             <span class="arrow">{ui.expanded.has(row.batchId) ? '▼' : '▶'}</span>
             {row.title}
-            {#if i === ui.historyCursor}<span class="dim">[Enter: Expand/Collapse]</span>{/if}
           </button>
         </li>
       {:else}
-        <li class="row" class:selected={i === ui.historyCursor}>
+        <li class="row" class:selected={i === ui.historyCursor} transition:fade={{ duration: 150 }}>
           <div class="entry">
             <button class="row-main" class:playlist-item={!!row.entry.playlist} onclick={() => selectRow(i)}>
               <span class="icon" class:ok={row.entry.status === 'completed'} class:fail={row.entry.status === 'failed'}>
@@ -59,7 +59,14 @@ function selectRow(i: number): void {
     padding: 0;
   }
   .row {
-    padding: 1px 0;
+    padding: 2px 0;
+  }
+  .row:hover {
+    background: var(--hover);
+  }
+  .row.selected {
+    background: rgba(215, 95, 215, 0.09);
+    box-shadow: inset 3px 0 0 var(--select);
   }
   .row.selected .row-main {
     color: var(--select);

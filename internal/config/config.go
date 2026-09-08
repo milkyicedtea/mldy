@@ -55,6 +55,18 @@ type Config struct {
 	AudioQuality AudioQuality `yaml:"audio_quality"`
 	VideoQuality string       `yaml:"video_quality"`
 	OutputFolder string       `yaml:"output_folder"`
+	// JSRuntime selects the JavaScript runtime yt-dlp uses: "auto" picks the
+	// first available of deno > bun > node, or pins "deno", "bun" or "node".
+	JSRuntime string `yaml:"js_runtime,omitempty"`
+}
+
+// ValidJSRuntime reports whether s is an accepted js_runtime preference.
+func ValidJSRuntime(s string) bool {
+	switch s {
+	case "", "auto", "deno", "bun", "node":
+		return true
+	}
+	return false
 }
 
 // EntryConfig is a per-entry override of Config (all fields optional).
@@ -74,6 +86,7 @@ func defaultConfig() Config {
 		AudioQuality: "5",
 		VideoQuality: "best",
 		OutputFolder: filepath.Join(homeDir, "Downloads", "mldy"),
+		JSRuntime:    "auto",
 	}
 }
 
@@ -88,7 +101,7 @@ func LoadConfig() (Config, error) {
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		cfg := defaultConfig()
-		if saveErr := saveConfig(cfg); saveErr != nil {
+		if saveErr := Save(cfg); saveErr != nil {
 			return Config{}, saveErr
 		}
 		return cfg, nil
@@ -106,11 +119,15 @@ func LoadConfig() (Config, error) {
 	if !cfg.AudioQuality.IsValid() {
 		cfg.AudioQuality = "5"
 	}
+	if !ValidJSRuntime(cfg.JSRuntime) {
+		cfg.JSRuntime = "auto"
+	}
 
 	return cfg, nil
 }
 
-func saveConfig(cfg Config) error {
+// Save persists cfg to ~/.config/mldy/config.yaml.
+func Save(cfg Config) error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err

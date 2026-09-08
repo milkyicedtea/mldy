@@ -14,6 +14,10 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as config$0 from "../config/models.js";
+
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as $models from "./models.js";
 
 /**
@@ -38,6 +42,15 @@ export function ClearAll(): $CancellablePromise<void> {
  */
 export function GetState(): $CancellablePromise<$models.State> {
     return $Call.ByID(2538971395);
+}
+
+/**
+ * PickOutputFolder opens a native directory chooser (GTK on Linux, WebView2
+ * on Windows, NSOpenPanel on macOS) and returns the selected path. An empty
+ * string means the dialog was cancelled.
+ */
+export function PickOutputFolder(): $CancellablePromise<string> {
+    return $Call.ByID(1361574894);
 }
 
 /**
@@ -68,4 +81,13 @@ export function RemoveLast(): $CancellablePromise<void> {
  */
 export function Start(): $CancellablePromise<boolean> {
     return $Call.ByID(3558839338);
+}
+
+/**
+ * UpdateConfig validates and persists a new global configuration, applies it
+ * to the downloader, and emits the new state. A pinned JS runtime must be
+ * installed; "auto" re-runs detection (deno > bun > node).
+ */
+export function UpdateConfig(cfg: config$0.Config): $CancellablePromise<void> {
+    return $Call.ByID(4165454841, cfg);
 }

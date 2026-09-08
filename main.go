@@ -37,7 +37,6 @@ func main() {
 		},
 	})
 
-
 	a.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:            "mldy",
 		Width:            900,

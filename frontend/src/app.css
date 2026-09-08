@@ -13,6 +13,10 @@
   --tab-active: #4a4a8a;
   --tab-active-fg: #f5f5e8;
   --hover: rgba(255, 255, 255, 0.06);
+
+  /* Native widgets (select popups, scrollbars) follow the dark scheme —
+     WebKitGTK otherwise renders them with UA defaults. */
+  color-scheme: dark;
 }
 
 html,
@@ -39,4 +43,34 @@ button {
 
 .dim {
   color: var(--dim);
+}
+
+:focus-visible {
+  outline: 2px solid var(--select);
+  outline-offset: 1px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--dim);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

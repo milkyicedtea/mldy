@@ -5,10 +5,12 @@ import Downloads from '@/components/Downloads.svelte'
 import Footer from '@/components/Footer.svelte'
 import History from '@/components/History.svelte'
 import InputQueue from '@/components/InputQueue.svelte'
+import SettingsModal from '@/components/SettingsModal.svelte'
 import Tabs from '@/components/Tabs.svelte'
 import {
   activateSelected,
   clearAll,
+  closeSettings,
   deleteSelected,
   deps,
   initStore,
@@ -22,6 +24,10 @@ import {
 onMount(() => initStore())
 
 function keydown(e: KeyboardEvent) {
+  if (ui.settingsOpen) {
+    if (e.key === 'Escape') closeSettings()
+    return // modal is up: it handles its own input
+  }
   if (deps.phase !== 'done') return // modal is up: it handles its own input
 
   // Global shortcuts. Ctrl+D/Ctrl+R are reserved by the webview
@@ -126,10 +132,11 @@ function keydown(e: KeyboardEvent) {
   </main>
   <Footer />
 </div>
+<DepsModal />
+<SettingsModal />
 
 <style>
   .app {
-    display: flex;
     flex-direction: column;
     height: 100vh;
   }

@@ -56,6 +56,13 @@ func NewDownloader(cfg config.Config, runtime string) *Downloader {
 	return &Downloader{globalConfig: cfg, runtime: runtime}
 }
 
+// SetConfig updates the global config and JS runtime; the next yt-dlp
+// invocation picks them up. Callers must serialize access.
+func (d *Downloader) SetConfig(cfg config.Config, runtime string) {
+	d.globalConfig = cfg
+	d.runtime = runtime
+}
+
 // baseArgs returns the args common to every yt-dlp invocation.
 func (d *Downloader) baseArgs() []string {
 	args := []string{"--newline", "--progress"}

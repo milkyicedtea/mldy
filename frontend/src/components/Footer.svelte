@@ -20,8 +20,9 @@ const hints = $derived.by(() => {
   } else if (ui.screen === 'downloads') {
     if (running) h.push('downloading…')
     else if (queuedCount > 0) h.push('ctrl+enter: start downloads')
-  } else if (ui.screen === 'history' && historyCount === 0) {
-    h.push('no history yet')
+  } else if (ui.screen === 'history') {
+    if (historyCount > 0) h.push('up/down: move', 'enter: expand', 'd: remove')
+    else h.push('no history yet')
   }
   return h
 })

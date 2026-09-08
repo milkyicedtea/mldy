@@ -1,6 +1,7 @@
 import type { DepsStatus, Entry, State } from '@bindings/mldy/internal/app'
 import * as depsSvc from '@bindings/mldy/internal/app/depsservice'
 import * as svc from '@bindings/mldy/internal/app/service'
+import type { Config } from '@bindings/mldy/internal/config'
 import { Events } from '@wailsio/runtime'
 
 export type Screen = 'input' | 'downloads' | 'history'
@@ -17,6 +18,7 @@ export const ui = $state({
   expanded: new Set<string>(),
   url: '',
   inputFocused: true,
+  settingsOpen: false,
 })
 
 export const deps = $state({
@@ -124,11 +126,35 @@ export function toggleExpand(batchId: string): void {
   else ui.expanded.add(batchId)
 }
 
-export function addURL(): void {
-  const url = ui.url.trim()
-  if (!url) return
-  ui.url = ''
-  svc.AddURL(url)
+// addURL queues one URL, or every whitespace-separated URL in a pasted
+// multi-URL blob. Without arguments it queues the input's current value.
+export function addURL(text?: string): void {
+  const urls = (text ?? ui.url).split(/\s+/).filter((u) => u)
+  if (urls.length === 0) return
+  if (text === undefined) ui.url = ''
+  for (const u of urls) svc.AddURL(u)
+}
+
+// ---- settings -----------------------------------------------------------------
+
+export function openSettings(): void {
+  ui.settingsOpen = true
+}
+
+export function closeSettings(): void {
+  ui.settingsOpen = false
+}
+
+// saveSettings pushes a new config to the backend. It throws on validation
+// errors (message from Go) and resolves once the "state" event carries the
+// effective config.
+export function saveSettings(cfg: Config): Promise<void> {
+  return svc.UpdateConfig(cfg)
+}
+
+// pickOutputFolder opens the native directory chooser; empty string = cancelled.
+export function pickOutputFolder(): Promise<string> {
+  return svc.PickOutputFolder()
 }
 
 export function start(): void {

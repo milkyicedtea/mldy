@@ -15,6 +15,12 @@ export interface Config {
     "AudioQuality": AudioQuality;
     "VideoQuality": string;
     "OutputFolder": string;
+
+    /**
+     * JSRuntime selects the JavaScript runtime yt-dlp uses: "auto" picks the
+     * first available of deno > bun > node, or pins "deno", "bun" or "node".
+     */
+    "JSRuntime": string;
 }
 
 /**
