@@ -17,13 +17,15 @@ import (
 // DepsStatus is the startup dependency report the frontend acts on: missing
 // installs, runtime upgrades, and pending yt-dlp updates.
 type DepsStatus struct {
-	YtDlpInstalled     bool             `json:"ytDlpInstalled"`
-	FfmpegInstalled    bool             `json:"ffmpegInstalled"`
-	Runtime            string           `json:"runtime"`
-	RuntimeFound       bool             `json:"runtimeFound"`
-	RuntimeRecommended bool             `json:"runtimeRecommended"`
-	Update             *deps.UpdateInfo `json:"update,omitempty"`
-	UpdateAvailable    bool             `json:"updateAvailable"`
+	YtDlpInstalled            bool             `json:"ytDlpInstalled"`
+	FfmpegInstalled           bool             `json:"ffmpegInstalled"`
+	Runtime                   string           `json:"runtime"`
+	RuntimeFound              bool             `json:"runtimeFound"`
+	RuntimeVersion            string           `json:"runtimeVersion,omitempty"`
+	RuntimeRecommendedVersion string           `json:"runtimeRecommendedVersion,omitempty"`
+	RuntimeRecommended        bool             `json:"runtimeRecommended"`
+	Update                    *deps.UpdateInfo `json:"update,omitempty"`
+	UpdateAvailable           bool             `json:"updateAvailable"`
 }
 
 // DepsService exposes dependency detection, installation and updates.
@@ -48,7 +50,12 @@ func (d *DepsService) Check() DepsStatus {
 	_, err = exec.LookPath("ffmpeg")
 	status.FfmpegInstalled = err == nil
 
-	status.Runtime, status.RuntimeFound, status.RuntimeRecommended = deps.DetectRuntime()
+	runtime, st, found := deps.DetectRuntime()
+	status.Runtime = runtime
+	status.RuntimeFound = found
+	status.RuntimeVersion = st.Version
+	status.RuntimeRecommendedVersion = st.RecommendedVersion
+	status.RuntimeRecommended = st.MeetsRecommended
 
 	if info, ok := deps.CheckUpdateAvailable(); ok {
 		status.Update = &info
@@ -139,7 +146,6 @@ func (d *DepsService) Update(name string) error {
 	}
 	return nil
 }
-
 
 // restartSelf re-executes the current binary with the same arguments and
 // exits. Used on Windows after installs/updates so the new PATH is picked up.

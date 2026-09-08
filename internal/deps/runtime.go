@@ -12,9 +12,9 @@ import (
 // runtimeVersionInfo holds version requirements for a JS runtime.
 type runtimeVersionInfo struct {
 	minimum [3]int
-	// recommended is the soft floor above which the installation is considered ideal.
-	// A zero value means "always nudge" (used for fast-moving runtimes like
-	// deno and bun where we can't pin a specific recommended version).
+	// recommended is the soft floor above which the installation is considered
+	// ideal. Pinned to concrete milestones (deno 2.9, bun 1.4, node 24 LTS) so
+	// the upgrade nudge only appears when the user actually falls behind.
 	recommended      [3]int
 	recommendedLabel string
 }
@@ -22,8 +22,8 @@ type runtimeVersionInfo struct {
 var runtimeVersions = map[string]runtimeVersionInfo{
 	"deno": {
 		minimum:          [3]int{2, 0, 0},
-		recommended:      [3]int{}, // zero → always nudge
-		recommendedLabel: "latest",
+		recommended:      [3]int{2, 9, 0},
+		recommendedLabel: "2.9 or newer",
 	},
 	"node": {
 		// 24 LTS is recommended; 20 is the absolute floor.
@@ -33,8 +33,8 @@ var runtimeVersions = map[string]runtimeVersionInfo{
 	},
 	"bun": {
 		minimum:          [3]int{1, 0, 31},
-		recommended:      [3]int{}, // zero → always nudge
-		recommendedLabel: "latest",
+		recommended:      [3]int{1, 4, 0},
+		recommendedLabel: "1.4 or newer",
 	},
 }
 
@@ -115,23 +115,32 @@ func getRuntimeVersion(runtime string) (string, error) {
 	return fields[0], nil
 }
 
+// RuntimeStatus describes a detected runtime: the version found on disk and
+// what the app considers ideal for it.
+type RuntimeStatus struct {
+	Version            string
+	RecommendedVersion string
+	MeetsMinimum       bool
+	MeetsRecommended   bool
+}
+
 // checkRuntimeVersion verifies the installed version meets the minimum and
 // recommended thresholds.
-// Returns (meetsMinimum, meetsRecommended, error).
-func checkRuntimeVersion(runtime string) (bool, bool, error) {
+// Returns (status, error); error means the version could not be determined.
+func checkRuntimeVersion(runtime string) (RuntimeStatus, error) {
 	info, ok := runtimeVersions[runtime]
 	if !ok {
-		return false, false, fmt.Errorf("unknown runtime: %s", runtime)
+		return RuntimeStatus{}, fmt.Errorf("unknown runtime: %s", runtime)
 	}
 
 	versionStr, err := getRuntimeVersion(runtime)
 	if err != nil {
-		return false, false, err
+		return RuntimeStatus{}, err
 	}
 
 	parsed, err := parseVersion(versionStr)
 	if err != nil {
-		return false, false, fmt.Errorf("could not parse %s version %q: %w", runtime, versionStr, err)
+		return RuntimeStatus{}, fmt.Errorf("could not parse %s version %q: %w", runtime, versionStr, err)
 	}
 
 	minStr := fmt.Sprintf("%d.%d.%d", info.minimum[0], info.minimum[1], info.minimum[2])
@@ -139,13 +148,15 @@ func checkRuntimeVersion(runtime string) (bool, bool, error) {
 	if !versionAtLeast(parsed, info.minimum) {
 		printf("⚠  %s %s is below the minimum required %s (recommended: %s).\n",
 			runtime, versionStr, minStr, info.recommendedLabel)
-		return false, false, nil
+		return RuntimeStatus{
+			Version:            versionStr,
+			RecommendedVersion: info.recommendedLabel,
+			MeetsMinimum:       false,
+			MeetsRecommended:   false,
+		}, nil
 	}
 
-	// Zero recommended means "always nudge" (deno/bun track latest).
-	zeroVersion := [3]int{}
-	meetsRecommended := info.recommended != zeroVersion && versionAtLeast(parsed, info.recommended)
-
+	meetsRecommended := versionAtLeast(parsed, info.recommended)
 	if meetsRecommended {
 		printf("✓  %s %s detected.\n", runtime, versionStr)
 	} else {
@@ -153,10 +164,15 @@ func checkRuntimeVersion(runtime string) (bool, bool, error) {
 			runtime, versionStr, info.recommendedLabel)
 	}
 
-	return true, meetsRecommended, nil
+	return RuntimeStatus{
+		Version:            versionStr,
+		RecommendedVersion: info.recommendedLabel,
+		MeetsMinimum:       true,
+		MeetsRecommended:   meetsRecommended,
+	}, nil
 }
 
-// updateRuntime attempts to upgrade the given runtime to its latest version.
+// UpdateRuntime updateRuntime attempts to upgrade the given runtime to its latest version.
 // Returns true if the update succeeded and the program should restart on Windows.
 func UpdateRuntime(runtime string) error {
 	printf("Updating %s...\n", runtime)
@@ -208,7 +224,7 @@ func UpdateRuntime(runtime string) error {
 	return errors.New("unsupported OS")
 }
 
-// installDeno installs Deno from scratch.
+// InstallDeno installDeno installs Deno from scratch.
 func InstallDeno() error {
 	switch rt.GOOS {
 	case "darwin", "linux":
@@ -227,28 +243,35 @@ func PrintDenoGuide() {
 	printf("Or: https://deno.land/")
 }
 
-// detectRuntime finds the first available JS runtime that meets the minimum
+// DetectRuntime finds the first available JS runtime that meets the minimum
 // version requirement. Preference order: deno > bun > node.
-// Returns (runtimeName, meetsMinimum, meetsRecommended).
-func DetectRuntime() (string, bool, bool) {
+// Returns (runtimeName, status, found).
+func DetectRuntime() (string, RuntimeStatus, bool) {
 	for _, runtime := range []string{"deno", "bun", "node"} {
 		if _, err := exec.LookPath(runtime); err != nil {
 			continue
 		}
 
-		ok, recommended, err := checkRuntimeVersion(runtime)
+		st, err := checkRuntimeVersion(runtime)
 		if err != nil {
 			printf("⚠  Could not verify %s version: %v\n", runtime, err)
 			// Binary exists but version unreadable — accept with a warning.
-			return runtime, true, false
+			return runtime, RuntimeStatus{}, true
 		}
-		if !ok {
+		if !st.MeetsMinimum {
 			// Too old — keep looking.
 			continue
 		}
 
-		return runtime, true, recommended
+		return runtime, st, true
 	}
 
-	return "", false, false
+	return "", RuntimeStatus{}, false
+}
+
+// RuntimeAvailable reports whether the named JS runtime is installed and
+// meets the minimum version requirement.
+func RuntimeAvailable(name string) bool {
+	st, err := checkRuntimeVersion(name)
+	return err == nil && st.MeetsMinimum
 }

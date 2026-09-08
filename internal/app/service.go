@@ -50,7 +50,7 @@ func NewService() *Service {
 	// The GUI has no console; keep status chatter out of the way unless a
 	// deps operation temporarily installs a streaming writer.
 	deps.SetOutput(io.Discard)
-	runtime, found, _ := deps.DetectRuntime()
+	runtime, _, found := deps.DetectRuntime()
 	if !found {
 		runtime = ""
 	}

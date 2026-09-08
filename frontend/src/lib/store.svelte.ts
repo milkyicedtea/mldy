@@ -238,7 +238,7 @@ function buildPrompt(status: DepsStatus): Prompt | null {
       kind: 'update',
       dep: status.runtime,
       title: `${status.runtime} upgrade recommended`,
-      body: `Your ${status.runtime} version is below the recommended threshold. Upgrade it?`,
+      body: `Your ${status.runtime} version (${status.runtimeVersion ?? 'unknown'}) is below the recommended threshold (${status.runtimeRecommendedVersion ?? 'latest'}). Upgrade it?`,
       confirmLabel: `Upgrade ${status.runtime}`,
       optionalLabel: 'Skip',
       mandatory: false,
@@ -276,7 +276,7 @@ function nextPrompt(): void {
   }
 }
 
-let currentPrompt: Prompt | null = null
+let currentPrompt = $state<Prompt | null>(null)
 
 export function activePrompt(): Prompt | null {
   return currentPrompt

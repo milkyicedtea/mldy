@@ -20,6 +20,8 @@ export interface DepsStatus {
     "ffmpegInstalled": boolean;
     "runtime": string;
     "runtimeFound": boolean;
+    "runtimeVersion"?: string;
+    "runtimeRecommendedVersion"?: string;
     "runtimeRecommended": boolean;
     "update"?: deps$0.UpdateInfo | null;
     "updateAvailable": boolean;

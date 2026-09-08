@@ -31,6 +31,7 @@ function allGuides(): string[] {
 runDepsCheck()
 </script>
 
+{#if deps.phase !== 'done'}
 <div class="overlay" role="dialog" aria-modal="true">
   <div class="modal">
     {#if deps.phase === 'checking'}
@@ -68,6 +69,7 @@ runDepsCheck()
     {/if}
   </div>
 </div>
+{/if}
 
 <style>
   .overlay {
