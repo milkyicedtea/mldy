@@ -1,10 +1,8 @@
-# Common IDE files
-**/.vscode
-**/.idea
-
-# Potential generated binaries
-mldy.exe
-mldy
-
-# own test script
-crossbuild-windows.sh
+.task
+bin
+frontend/dist
+frontend/node_modules
+build/linux/appimage/build
+build/windows/nsis/MicrosoftEdgeWebview2Setup.exe
+build/linux/mldy.desktop
+.idea/

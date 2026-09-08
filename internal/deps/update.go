@@ -129,51 +129,47 @@ func stampPath() (string, error) {
 	return filepath.Join(dir, stampSubdir, stampFile), nil
 }
 
-// checkUpdates compares installed yt-dlp against the latest GitHub release and
-// offers to update (ffmpeg piggybacks on the same update pass). Throttled to
-// once per day via a stamp file; every failure path is non-fatal so startup is
-// never blocked.
-func CheckUpdates() {
+// UpdateInfo describes an available yt-dlp update.
+type UpdateInfo struct {
+	Installed string
+	Latest    string
+}
+
+// CheckUpdateAvailable compares installed yt-dlp against the latest GitHub
+// release. Throttled to once per day via a stamp file; every failure path is
+// non-fatal. The stamp is written before the caller decides, so declining the
+// offer snoozes the check for 24h — same semantics as the old CLI prompt.
+func CheckUpdateAvailable() (UpdateInfo, bool) {
+	var info UpdateInfo
+
 	stamp, err := stampPath()
 	if err != nil {
-		return
+		return info, false
 	}
-	if info, err := os.Stat(stamp); err == nil && time.Since(info.ModTime()) < checkEvery {
-		return
+	if s, err := os.Stat(stamp); err == nil && time.Since(s.ModTime()) < checkEvery {
+		return info, false
 	}
 
 	installed, err := installedYtDlpVersion()
 	if err != nil {
-		return // yt-dlp absent/broken — the install path in main() handles that
+		return info, false // yt-dlp absent/broken — the install path handles that
 	}
 	latest, err := latestTag(ytdlpRepo)
 	if err != nil {
-		return // offline / rate-limited
+		return info, false // offline / rate-limited
 	}
 	_ = os.MkdirAll(filepath.Dir(stamp), 0o755)
-	_ = os.WriteFile(stamp, nil, 0o644) // declining == snooze for 24h
+	_ = os.WriteFile(stamp, nil, 0o644)
 
 	if latest == installed {
-		return
+		return info, false
 	}
-
-	fmt.Printf("yt-dlp %s available (installed: %s).\n", latest, installed)
-	if !AskYesNo("Update yt-dlp now?") {
-		return
-	}
-	if err := updateYtDlp(); err != nil {
-		fmt.Println("yt-dlp update failed:", err)
-		return
-	}
-	fmt.Println("yt-dlp updated.")
-
-	// ffmpeg has no version probe worth trusting; refresh it opportunistically
-	// while we are already shelling out. Failure is harmless.
-	if AskYesNoDefaultNo("Also update ffmpeg?") {
-		if err := updateFfmpeg(); err != nil {
-			fmt.Println("ffmpeg update failed:", err)
-		} else {
-			fmt.Println("ffmpeg updated.")
-		}
-	}
+	return UpdateInfo{Installed: installed, Latest: latest}, true
 }
+
+// UpdateYtDlp updates yt-dlp (self-updater or distro package, per install mode).
+func UpdateYtDlp() error { return updateYtDlp() }
+
+// UpdateFfmpeg refreshes ffmpeg opportunistically; it has no trusted version
+// probe, so it piggybacks on the same update pass as yt-dlp.
+func UpdateFfmpeg() error { return updateFfmpeg() }

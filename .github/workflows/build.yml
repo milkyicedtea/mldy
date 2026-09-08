@@ -8,12 +8,18 @@ permissions:
 
 jobs:
   build:
-    name: Build binaries
+    name: Build ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
-        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        include:
+          - os: ubuntu-latest
+            artifact: mldy-linux.tar.gz
+          - os: windows-latest
+            artifact: mldy-windows.zip
+          - os: macos-latest
+            artifact: mldy-macos.tar.gz
 
     steps:
       - name: Checkout
@@ -22,43 +28,36 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '>=1.25'
+          go-version: '>=1.26'
 
-      - name: Build release
+      - name: Install wails3 CLI
+        shell: bash
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.16
+
+      - name: Install Linux webview dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libgtk-4-dev libwebkitgtk-6.0-dev
+
+      - name: Build
+        shell: bash
+        run: wails3 build
+
+      - name: Package
         shell: bash
         run: |
-          mkdir -p dist
-          
-          NAME=mldy
-          
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            GOOS=windows GOARCH=amd64 \
-              go build -ldflags="-s -w" -o dist/$NAME.exe .
-          
-          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            GOOS=darwin GOARCH=amd64 \
-              go build -ldflags="-s -w" -o dist/$NAME
-          
-            chmod +x dist/$NAME
-            tar czf dist/$NAME-macos.tar.gz -C dist $NAME
-          
+          cd bin
+          mkdir -p ../dist
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            7z a ../dist/${{ matrix.artifact }} mldy.exe
           else
-            GOOS=linux GOARCH=amd64 \
-              go build -ldflags="-s -w" -o dist/$NAME .
-          
-            strip dist/$NAME || true
-          
-            chmod +x dist/$NAME
-            
-            mkdir -p release
-            cp dist/$NAME release/
-            tar czf dist/$NAME-linux.tar.gz -C release $NAME
+            tar czf ../dist/${{ matrix.artifact }} mldy
           fi
+        env:
+          RUNNER_OS: ${{ runner.os }}
 
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            dist/*.tar.gz
-            dist/*.exe
-
+          files: dist/*

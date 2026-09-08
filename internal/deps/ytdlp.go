@@ -84,9 +84,9 @@ func InstallYtDlp() error {
 }
 
 func PrintYtDlpGuide() {
-	fmt.Println("\nManual yt-dlp installation:")
-	fmt.Println("macOS:   brew install yt-dlp")
-	fmt.Println("Linux:   check your distro's package manager, or use github yt-dlp releases")
-	fmt.Println("Windows: winget install yt-dlp")
-	fmt.Println("Or: https://github.com/yt-dlp/yt-dlp")
+	printf("\nManual yt-dlp installation:")
+	printf("macOS:   brew install yt-dlp")
+	printf("Linux:   check your distro's package manager, or use github yt-dlp releases")
+	printf("Windows: winget install yt-dlp")
+	printf("Or: https://github.com/yt-dlp/yt-dlp")
 }

@@ -137,7 +137,7 @@ func checkRuntimeVersion(runtime string) (bool, bool, error) {
 	minStr := fmt.Sprintf("%d.%d.%d", info.minimum[0], info.minimum[1], info.minimum[2])
 
 	if !versionAtLeast(parsed, info.minimum) {
-		fmt.Printf("⚠  %s %s is below the minimum required %s (recommended: %s).\n",
+		printf("⚠  %s %s is below the minimum required %s (recommended: %s).\n",
 			runtime, versionStr, minStr, info.recommendedLabel)
 		return false, false, nil
 	}
@@ -147,9 +147,9 @@ func checkRuntimeVersion(runtime string) (bool, bool, error) {
 	meetsRecommended := info.recommended != zeroVersion && versionAtLeast(parsed, info.recommended)
 
 	if meetsRecommended {
-		fmt.Printf("✓  %s %s detected.\n", runtime, versionStr)
+		printf("✓  %s %s detected.\n", runtime, versionStr)
 	} else {
-		fmt.Printf("✓  %s %s detected (upgrade to %s recommended).\n",
+		printf("✓  %s %s detected (upgrade to %s recommended).\n",
 			runtime, versionStr, info.recommendedLabel)
 	}
 
@@ -159,7 +159,7 @@ func checkRuntimeVersion(runtime string) (bool, bool, error) {
 // updateRuntime attempts to upgrade the given runtime to its latest version.
 // Returns true if the update succeeded and the program should restart on Windows.
 func UpdateRuntime(runtime string) error {
-	fmt.Printf("Updating %s...\n", runtime)
+	printf("Updating %s...\n", runtime)
 	switch runtime {
 	case "deno":
 		switch rt.GOOS {
@@ -221,10 +221,10 @@ func InstallDeno() error {
 }
 
 func PrintDenoGuide() {
-	fmt.Println("\nManual Deno installation:")
-	fmt.Println("macOS/Linux: curl -fsSL https://deno.land/install.sh | sh")
-	fmt.Println("Windows:     winget install DenoLand.Deno")
-	fmt.Println("Or: https://deno.land/")
+	printf("\nManual Deno installation:")
+	printf("macOS/Linux: curl -fsSL https://deno.land/install.sh | sh")
+	printf("Windows:     winget install DenoLand.Deno")
+	printf("Or: https://deno.land/")
 }
 
 // detectRuntime finds the first available JS runtime that meets the minimum
@@ -238,7 +238,7 @@ func DetectRuntime() (string, bool, bool) {
 
 		ok, recommended, err := checkRuntimeVersion(runtime)
 		if err != nil {
-			fmt.Printf("⚠  Could not verify %s version: %v\n", runtime, err)
+			printf("⚠  Could not verify %s version: %v\n", runtime, err)
 			// Binary exists but version unreadable — accept with a warning.
 			return runtime, true, false
 		}

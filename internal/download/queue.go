@@ -1,31 +1,30 @@
-package ui
+package download
 
 import (
 	"fmt"
 	"time"
 
 	"mldy/internal/config"
-	"mldy/internal/download"
 )
 
 type Queue struct {
-	Entries []download.DownloadEntry
+	Entries []DownloadEntry
 	nextId  int
 }
 
 func NewQueue() *Queue {
 	return &Queue{
-		Entries: make([]download.DownloadEntry, 0),
+		Entries: make([]DownloadEntry, 0),
 		nextId:  1,
 	}
 }
 
-func (q *Queue) add(url, title string, playlist *download.PlaylistMeta, cfg config.EntryConfig) {
-	q.Entries = append(q.Entries, download.DownloadEntry{
+func (q *Queue) add(url, title string, playlist *PlaylistMeta, cfg config.EntryConfig) {
+	q.Entries = append(q.Entries, DownloadEntry{
 		ID:       q.nextId,
 		URL:      url,
 		Title:    title,
-		Status:   download.StatusQueued,
+		Status:   StatusQueued,
 		Config:   cfg,
 		Playlist: playlist,
 	})
@@ -38,11 +37,11 @@ func (q *Queue) Add(url string, cfg config.EntryConfig) {
 }
 
 // AddPlaylistItems expands a resolved playlist into individual queue entries.
-func (q *Queue) AddPlaylistItems(items []download.PlaylistItem, playlistTitle string, cfg config.EntryConfig) {
+func (q *Queue) AddPlaylistItems(items []PlaylistItem, playlistTitle string, cfg config.EntryConfig) {
 	total := len(items)
 	batchID := fmt.Sprintf("pl-%d", time.Now().UnixNano())
 	for i, item := range items {
-		q.add(item.URL, item.Title, &download.PlaylistMeta{
+		q.add(item.URL, item.Title, &PlaylistMeta{
 			BatchID:       batchID,
 			PlaylistTitle: playlistTitle,
 			Index:         i + 1,
@@ -51,37 +50,37 @@ func (q *Queue) AddPlaylistItems(items []download.PlaylistItem, playlistTitle st
 	}
 }
 
-func (q *Queue) GetQueued() []download.DownloadEntry {
-	var out []download.DownloadEntry
+func (q *Queue) GetQueued() []DownloadEntry {
+	var out []DownloadEntry
 	for _, e := range q.Entries {
-		if e.Status == download.StatusQueued {
+		if e.Status == StatusQueued {
 			out = append(out, e)
 		}
 	}
 	return out
 }
 
-func (q *Queue) GetActive() []download.DownloadEntry {
-	var out []download.DownloadEntry
+func (q *Queue) GetActive() []DownloadEntry {
+	var out []DownloadEntry
 	for _, e := range q.Entries {
-		if e.Status == download.StatusDownloading {
+		if e.Status == StatusDownloading {
 			out = append(out, e)
 		}
 	}
 	return out
 }
 
-func (q *Queue) GetCompleted() []download.DownloadEntry {
-	var out []download.DownloadEntry
+func (q *Queue) GetCompleted() []DownloadEntry {
+	var out []DownloadEntry
 	for _, e := range q.Entries {
-		if e.Status == download.StatusCompleted || e.Status == download.StatusFailed {
+		if e.Status == StatusCompleted || e.Status == StatusFailed {
 			out = append(out, e)
 		}
 	}
 	return out
 }
 
-func (q *Queue) Update(id int, fn func(*download.DownloadEntry)) {
+func (q *Queue) Update(id int, fn func(*DownloadEntry)) {
 	for i := range q.Entries {
 		if q.Entries[i].ID == id {
 			fn(&q.Entries[i])
@@ -90,7 +89,7 @@ func (q *Queue) Update(id int, fn func(*download.DownloadEntry)) {
 	}
 }
 
-func (q *Queue) GetByID(id int) *download.DownloadEntry {
+func (q *Queue) GetByID(id int) *DownloadEntry {
 	for i := range q.Entries {
 		if q.Entries[i].ID == id {
 			return &q.Entries[i]
@@ -108,6 +107,22 @@ func (q *Queue) Remove(id int) {
 	}
 }
 
+// RemoveBatch removes every entry belonging to the given playlist batch.
+func (q *Queue) RemoveBatch(batchID string) {
+	var kept []DownloadEntry
+	for _, e := range q.Entries {
+		if e.Playlist == nil || e.Playlist.BatchID != batchID {
+			kept = append(kept, e)
+		}
+	}
+	q.Entries = kept
+}
+
+func (q *Queue) Clear() {
+	q.Entries = nil
+	q.nextId = 1
+}
+
 func (q *Queue) TotalProgress() float64 {
 	if len(q.Entries) == 0 {
 		return 0
@@ -115,11 +130,11 @@ func (q *Queue) TotalProgress() float64 {
 	var total float64
 	for _, e := range q.Entries {
 		switch e.Status {
-		case download.StatusCompleted:
+		case StatusCompleted:
 			total += 100
-		case download.StatusDownloading:
+		case StatusDownloading:
 			total += e.Progress
-		default: // download.StatusFailed, download.StatusQueued
+		default: // StatusFailed, StatusQueued
 			// count as 0% progress
 		}
 	}

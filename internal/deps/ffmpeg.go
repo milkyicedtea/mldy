@@ -58,9 +58,9 @@ func InstallFfmpeg() error {
 }
 
 func PrintFfmpegGuide() {
-	fmt.Println("\nManual ffmpeg installation:")
-	fmt.Println("macOS:   brew install ffmpeg")
-	fmt.Println("Linux:   check your distro's package manager")
-	fmt.Println("Windows: winget install -e --id Gyan.FFmpeg --source winget")
-	fmt.Println("Or: https://ffmpeg.org/download.html")
+	printf("\nManual ffmpeg installation:")
+	printf("macOS:   brew install ffmpeg")
+	printf("Linux:   check your distro's package manager")
+	printf("Windows: winget install -e --id Gyan.FFmpeg --source winget")
+	printf("Or: https://ffmpeg.org/download.html")
 }

@@ -1,0 +1,42 @@
+:root {
+  --bg: #111118;
+  --panel: #1a1a23;
+  --border: #2a2a35;
+  --fg: #e6e6ea;
+  --dim: #6c6c74;
+  --accent: #d75fd7;
+  --select: #d787d7;
+  --blue: #5f87d7;
+  --green: #5fff5f;
+  --red: #ff5f5f;
+  --orange: #ff875f;
+  --tab-active: #4a4a8a;
+  --tab-active-fg: #f5f5e8;
+  --hover: rgba(255, 255, 255, 0.06);
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: ui-monospace, "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+  font-size: 14px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+p,
+h1,
+h2 {
+  user-select: text;
+}
+
+button {
+  user-select: none;
+}
+
+.dim {
+  color: var(--dim);
+}
