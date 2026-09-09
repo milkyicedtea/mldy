@@ -1,0 +1,29 @@
+@layer components {
+  .bar {
+    @apply h-2.5 w-[calc(100%-5rem)] overflow-hidden rounded-[5px] bg-panel align-middle;
+  }
+  .item .bar {
+    @apply inline-block;
+  }
+  .fill {
+    @apply h-full bg-green transition-[width] duration-200 ease-[ease];
+  }
+  .item .fill,
+  .running .fill {
+    animation: progress-pulse 1.2s ease-in-out infinite alternate;
+  }
+  .pct {
+    @apply ml-2 text-dim tabular-nums;
+  }
+}
+
+/* Named progress-pulse to avoid colliding with Tailwind's built-in
+   `pulse` keyframes. */
+@keyframes progress-pulse {
+  from {
+    opacity: 0.65;
+  }
+  to {
+    opacity: 1;
+  }
+}

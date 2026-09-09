@@ -1,0 +1,173 @@
+@layer base {
+  :root {
+    /* Native widgets (select popups, scrollbars) follow the dark scheme —
+       WebKitGTK otherwise renders them with UA defaults. */
+    color-scheme: dark;
+  }
+
+  /* Tailwind's border utilities assume preflight's solid-border reset;
+     we run without preflight, so provide just that part. */
+  *,
+  ::before,
+  ::after {
+    border-style: solid;
+    border-width: 0;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  p,
+  h1,
+  h2 {
+    user-select: text;
+  }
+
+  button {
+    user-select: none;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-select);
+    outline-offset: 1px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 5px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-dim);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* Typography helpers used across screens */
+  .dim {
+    @apply text-dim;
+  }
+  .title {
+    @apply m-0 mb-2.5 text-[1.05rem] text-accent;
+  }
+  .section {
+    @apply m-0 mb-1.5 font-bold;
+  }
+
+  /* Shared list rows (Input/Queue + History).
+     Same-subject selectors must keep ascending specificity (see
+     noDescendingSpecificity): base first, state last. */
+  .list {
+    @apply m-0 list-none p-0;
+  }
+  .row {
+    @apply flex items-center gap-1 py-0.5;
+  }
+  .row:hover {
+    @apply bg-hover;
+  }
+  .row.selected {
+    background: rgb(215 95 215 / 0.09);
+    @apply shadow-[inset_3px_0_0_var(--color-select)];
+  }
+  .row-main {
+    @apply min-w-0 flex-1 cursor-pointer overflow-hidden border-0 bg-transparent px-1.5 py-[3px] text-left font-[inherit] text-ellipsis whitespace-nowrap text-fg;
+  }
+  .playlist-item {
+    @apply pl-[26px];
+  }
+  .arrow {
+    @apply inline-block w-[1.2em];
+  }
+  .header .row-main {
+    @apply font-bold text-blue;
+  }
+  .row.selected .row-main {
+    @apply font-bold text-select;
+  }
+  .row.selected .row-main.playlist {
+    @apply text-select;
+  }
+  .actions {
+    @apply flex gap-0.5;
+  }
+  .btn {
+    @apply cursor-pointer rounded border-0 bg-transparent px-1.5 py-0.5 font-[inherit] hover:not-disabled:bg-hover disabled:cursor-default disabled:opacity-40;
+  }
+  .btn.remove {
+    @apply text-red;
+  }
+
+  /* Modals (Deps + Settings) */
+  .overlay {
+    @apply fixed inset-0 z-[100] flex items-center justify-center bg-black/60;
+  }
+  .modal {
+    @apply overflow-y-auto rounded-[10px] border border-border bg-panel px-6 py-5;
+  }
+  .modal-title {
+    @apply m-0 text-[1rem] text-accent;
+  }
+  .btns {
+    @apply mt-3.5 flex gap-2;
+  }
+  .mbtn {
+    @apply cursor-pointer rounded-md border border-border bg-transparent px-3.5 py-1.5 font-[inherit] text-fg disabled:cursor-default disabled:opacity-50;
+  }
+  .mbtn.primary {
+    @apply border-transparent bg-tab font-semibold text-tab-fg;
+  }
+  .mbtn.danger {
+    @apply border-red text-red;
+  }
+  .log {
+    @apply max-h-60 overflow-y-auto rounded-md border border-border bg-bg p-2.5 text-[0.85em] whitespace-pre-wrap break-words;
+  }
+  .field {
+    @apply mb-3 grid gap-1;
+  }
+  .field label {
+    @apply text-[0.85em] text-dim;
+  }
+  .field-input {
+    @apply w-full box-border rounded-md border border-border bg-bg px-2 py-1.5 font-[inherit] text-fg outline-none focus:border-select;
+  }
+  /* Popup list on WebKitGTK uses UA defaults unless option carries its own
+     colors. */
+  .field-input option,
+  .field-input optgroup {
+    background-color: var(--color-panel);
+    color: var(--color-fg);
+  }
+  .inline {
+    @apply flex gap-2;
+  }
+  .inline select {
+    @apply [flex:0_0_55%];
+  }
+}

@@ -1,0 +1,14 @@
+@layer components {
+  .tab {
+    @apply cursor-pointer rounded-t-md border-0 bg-transparent px-3.5 py-1.5 font-[inherit] text-dim hover:text-fg;
+  }
+  .tab.active {
+    @apply bg-tab font-semibold text-tab-fg;
+  }
+  .badge {
+    @apply ml-[7px] rounded-lg bg-tab px-1.5 text-[0.8em] font-semibold text-tab-fg;
+  }
+  .tab.active .badge {
+    @apply bg-bg;
+  }
+}

@@ -14,8 +14,8 @@ const counts = $derived.by(() => ({
 }))
 </script>
 
-<nav class="tabs">
-  <div class="tabs-left">
+<nav class="flex items-center border-b border-border px-3 pt-2">
+  <div class="flex gap-1">
     {#each tabs as t (t.id)}
       <button
         class="tab"
@@ -27,62 +27,6 @@ const counts = $derived.by(() => ({
       </button>
     {/each}
   </div>
-  <button class="gear" title="Settings" aria-label="Open settings" onclick={openSettings}>⚙</button>
+  <button class="ml-auto cursor-pointer rounded-md border-0 bg-transparent px-2 py-1 font-[inherit] text-[1.05em] text-dim hover:bg-hover hover:text-fg" title="Settings" aria-label="Open settings" onclick={openSettings}>⚙</button>
 </nav>
 
-<style>
-  .tabs {
-    display: flex;
-    align-items: center;
-    padding: 8px 12px 0;
-    border-bottom: 1px solid var(--border);
-  }
-  .tabs-left {
-    display: flex;
-    gap: 4px;
-  }
-  .gear {
-    margin-left: auto;
-    background: none;
-    border: none;
-    color: var(--dim);
-    font: inherit;
-    font-size: 1.05em;
-    padding: 4px 8px;
-    cursor: pointer;
-    border-radius: 6px;
-  }
-  .gear:hover {
-    color: var(--fg);
-    background: var(--hover);
-  }
-  .tab {
-    background: none;
-    border: none;
-    color: var(--dim);
-    font: inherit;
-    padding: 6px 14px;
-    cursor: pointer;
-    border-radius: 6px 6px 0 0;
-  }
-  .tab:hover {
-    color: var(--fg);
-  }
-  .tab.active {
-    background: var(--tab-active);
-    color: var(--tab-active-fg);
-    font-weight: 600;
-  }
-  .badge {
-    margin-left: 7px;
-    padding: 0 6px;
-    border-radius: 8px;
-    background: var(--tab-active);
-    color: var(--tab-active-fg);
-    font-size: 0.8em;
-    font-weight: 600;
-  }
-  .tab.active .badge {
-    background: var(--bg);
-  }
-</style>

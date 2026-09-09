@@ -1,76 +1,27 @@
-:root {
-  --bg: #111118;
-  --panel: #1a1a23;
-  --border: #2a2a35;
-  --fg: #e6e6ea;
-  --dim: #6c6c74;
-  --accent: #d75fd7;
-  --select: #d787d7;
-  --blue: #5f87d7;
-  --green: #5fff5f;
-  --red: #ff5f5f;
-  --orange: #ff875f;
-  --tab-active: #4a4a8a;
-  --tab-active-fg: #f5f5e8;
-  --hover: rgba(255, 255, 255, 0.06);
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "./styles/common.css";
+@import "./styles/downloads.css";
+@import "./styles/history.css";
+@import "./styles/input-queue.css";
+@import "./styles/tabs.css";
 
-  /* Native widgets (select popups, scrollbars) follow the dark scheme —
-     WebKitGTK otherwise renders them with UA defaults. */
-  color-scheme: dark;
-}
+@theme {
+  --color-bg: #111118;
+  --color-panel: #1a1a23;
+  --color-border: #2a2a35;
+  --color-fg: #e6e6ea;
+  --color-dim: #6c6c74;
+  --color-accent: #d75fd7;
+  --color-select: #d787d7;
+  --color-blue: #5f87d7;
+  --color-green: #5fff5f;
+  --color-red: #ff5f5f;
+  --color-orange: #ff875f;
+  --color-tab: #4a4a8a;
+  --color-tab-fg: #f5f5e8;
+  --color-hover: rgb(255 255 255 / 0.06);
 
-html,
-body {
-  margin: 0;
-  padding: 0;
-  background: var(--bg);
-  color: var(--fg);
-  font-family: ui-monospace, "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
-  font-size: 14px;
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-p,
-h1,
-h2 {
-  user-select: text;
-}
-
-button {
-  user-select: none;
-}
-
-.dim {
-  color: var(--dim);
-}
-
-:focus-visible {
-  outline: 2px solid var(--select);
-  outline-offset: 1px;
-}
-
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 5px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--dim);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
+  --font-mono: ui-monospace, "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
 }

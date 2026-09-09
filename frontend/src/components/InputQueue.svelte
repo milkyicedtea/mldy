@@ -45,7 +45,7 @@ function onPaste(e: ClipboardEvent): void {
 <h1 class="title">Add URLs to Queue</h1>
 
 <input
-  class="url-input"
+  class="w-full box-border rounded-md border border-border bg-panel px-2.5 py-2 font-[inherit] text-fg outline-none focus:border-select"
   type="text"
   placeholder="Paste a video or playlist URL, then press Enter"
   bind:value={ui.url}
@@ -55,13 +55,13 @@ function onPaste(e: ClipboardEvent): void {
 />
 
 {#if resolving > 0}
-  <p class="dim resolving">⟳ Resolving {resolving} URL(s)…</p>
+  <p class="dim my-2">⟳ Resolving {resolving} URL(s)…</p>
 {/if}
 
 {#if rows.length === 0 && resolving === 0}
-  <p class="dim empty">Queue is empty — paste a video or playlist URL above, then press Enter.</p>
+  <p class="dim">Queue is empty — paste a video or playlist URL above, then press Enter.</p>
 {:else}
-  <p class="section">Queued ({queued().length}):</p>
+  <p class="section mt-3.5">Queued ({queued().length}):</p>
   <ul class="list" role="listbox" aria-label="Queue">
     {#each rows as row, i (row.kind === 'header' ? row.batchId : row.entry.id)}
       {#if row.kind === 'header'}
@@ -93,7 +93,7 @@ function onPaste(e: ClipboardEvent): void {
   </ul>
 {/if}
 
-<p class="hint dim">
+<p class="mt-2.5 dim">
   {#if !isRunning && queued().length > 0}
     Ctrl+Enter start · Backspace removes last ·
   {/if}
@@ -103,7 +103,7 @@ function onPaste(e: ClipboardEvent): void {
 
 {#if config}
   <section class="config">
-    <p class="section">Current Config: <button class="linkish" onclick={openSettings}>edit</button></p>
+    <p class="section mt-3.5">Current Config: <button class="linkish" onclick={openSettings}>edit</button></p>
     <dl>
       <div><dt>Kind</dt><dd>{config.Kind}</dd></div>
       <div><dt>Format</dt><dd>{config.Format}</dd></div>
@@ -118,145 +118,3 @@ function onPaste(e: ClipboardEvent): void {
   </section>
 {/if}
 
-<style>
-  .title {
-    font-size: 1.05rem;
-    color: var(--accent);
-    margin: 0 0 10px;
-  }
-  .url-input {
-    width: 100%;
-    box-sizing: border-box;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--fg);
-    font: inherit;
-    padding: 8px 10px;
-    outline: none;
-  }
-  .url-input:focus {
-    border-color: var(--select);
-  }
-  .resolving {
-    margin: 8px 0;
-  }
-  .section {
-    font-weight: 700;
-    margin: 14px 0 6px;
-  }
-  .list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-  .row {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 0;
-  }
-  .row:hover {
-    background: var(--hover);
-  }
-  .row.selected {
-    background: rgba(215, 95, 215, 0.09);
-    box-shadow: inset 3px 0 0 var(--select);
-  }
-  .row.selected .row-main,
-  .row.selected .idx {
-    color: var(--select);
-    font-weight: 700;
-  }
-  .row-main {
-    background: none;
-    border: none;
-    color: var(--fg);
-    font: inherit;
-    text-align: left;
-    padding: 3px 6px;
-    cursor: pointer;
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .header .row-main {
-    color: var(--blue);
-    font-weight: 700;
-  }
-  .row.selected .row-main.playlist {
-    color: var(--select);
-  }
-  .playlist-item {
-    padding-left: 26px;
-  }
-  .idx {
-    color: var(--dim);
-    margin-right: 8px;
-  }
-  .arrow {
-    display: inline-block;
-    width: 1.2em;
-  }
-  .label {
-    color: inherit;
-  }
-  .row-main:not(.playlist) .label {
-    color: var(--fg);
-  }
-  .actions {
-    display: flex;
-    gap: 2px;
-  }
-  .btn {
-    background: none;
-    border: none;
-    font: inherit;
-    cursor: pointer;
-    padding: 2px 6px;
-    border-radius: 4px;
-  }
-  .btn.start { color: var(--green); }
-  .btn.remove { color: var(--red); }
-  .btn:hover:not(:disabled) { background: var(--hover); }
-  .btn:disabled {
-    opacity: 0.4;
-    cursor: default;
-  }
-  .hint {
-    margin-top: 10px;
-  }
-  .linkish {
-    background: none;
-    border: none;
-    color: var(--dim);
-    font: inherit;
-    text-decoration: underline;
-    cursor: pointer;
-    padding: 0;
-  }
-  .config {
-    margin-top: 16px;
-    border-top: 1px solid var(--border);
-    padding-top: 8px;
-  }
-  .config dl {
-    margin: 0;
-    display: grid;
-    gap: 2px;
-  }
-  .config dl div {
-    display: flex;
-  }
-  .config dt {
-    color: var(--dim);
-    width: 10rem;
-    flex-shrink: 0;
-  }
-  .config dd {
-    margin: 0;
-    word-break: break-all;
-  }
-</style>

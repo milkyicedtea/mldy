@@ -117,9 +117,9 @@ function keydown(e: KeyboardEvent) {
 
 <svelte:window on:keydown={keydown} />
 
-<div class="app">
+<div class="flex h-screen flex-col">
   <Tabs />
-  <main class="content">
+  <main class="flex-1 overflow-y-auto px-4 py-3">
     {#if ui.state === null}
       <p class="dim">Loading…</p>
     {:else if ui.screen === 'input'}
@@ -135,14 +135,3 @@ function keydown(e: KeyboardEvent) {
 <DepsModal />
 <SettingsModal />
 
-<style>
-  .app {
-    flex-direction: column;
-    height: 100vh;
-  }
-  .content {
-    flex: 1;
-    overflow-y: auto;
-    padding: 12px 16px;
-  }
-</style>

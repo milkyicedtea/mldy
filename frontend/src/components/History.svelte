@@ -27,7 +27,7 @@ function selectRow(i: number): void {
         <li class="row" class:selected={i === ui.historyCursor} transition:fade={{ duration: 150 }}>
           <div class="entry">
             <button class="row-main" class:playlist-item={!!row.entry.playlist} onclick={() => selectRow(i)}>
-              <span class="icon" class:ok={row.entry.status === 'completed'} class:fail={row.entry.status === 'failed'}>
+              <span class={row.entry.status === 'completed' ? 'text-green' : row.entry.status === 'failed' ? 'text-red' : ''}>
                 {row.entry.status === 'failed' ? '✗' : '✓'}
               </span>
               {label(row.entry)}
@@ -37,9 +37,9 @@ function selectRow(i: number): void {
             </span>
           </div>
           {#if row.entry.status === 'failed' && row.entry.error}
-            <pre class="error">{row.entry.error}</pre>
+            <pre class="mt-0.5 mb-1.5 ml-[34px] text-orange text-[0.85em] whitespace-pre-wrap break-words">{row.entry.error}</pre>
           {:else if row.entry.outputPath}
-            <p class="dim saved">Saved to: {row.entry.outputPath}</p>
+            <p class="dim mt-0.5 mb-1.5 ml-[34px]">Saved to: {row.entry.outputPath}</p>
           {/if}
         </li>
       {/if}
@@ -47,84 +47,3 @@ function selectRow(i: number): void {
   </ul>
 {/if}
 
-<style>
-  .title {
-    font-size: 1.05rem;
-    color: var(--accent);
-    margin: 0 0 10px;
-  }
-  .list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-  .row {
-    padding: 2px 0;
-  }
-  .row:hover {
-    background: var(--hover);
-  }
-  .row.selected {
-    background: rgba(215, 95, 215, 0.09);
-    box-shadow: inset 3px 0 0 var(--select);
-  }
-  .row.selected .row-main {
-    color: var(--select);
-    font-weight: 700;
-  }
-  .entry {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-  .row-main {
-    background: none;
-    border: none;
-    color: var(--fg);
-    font: inherit;
-    text-align: left;
-    padding: 3px 6px;
-    cursor: pointer;
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .header .row-main {
-    color: var(--blue);
-    font-weight: 700;
-  }
-  .row.selected .row-main.playlist {
-    color: var(--select);
-  }
-  .playlist-item {
-    padding-left: 26px;
-  }
-  .arrow {
-    display: inline-block;
-    width: 1.2em;
-  }
-  .icon.ok { color: var(--green); }
-  .icon.fail { color: var(--red); }
-  .btn {
-    background: none;
-    border: none;
-    color: var(--red);
-    font: inherit;
-    cursor: pointer;
-    padding: 2px 6px;
-    border-radius: 4px;
-  }
-  .btn:hover { background: var(--hover); }
-  .error {
-    margin: 2px 0 6px 34px;
-    color: var(--orange);
-    white-space: pre-wrap;
-    word-break: break-word;
-    font-size: 0.85em;
-  }
-  .saved {
-    margin: 2px 0 6px 34px;
-  }
-</style>

@@ -1,0 +1,5 @@
+@layer components {
+  .entry {
+    @apply flex items-center gap-1;
+  }
+}

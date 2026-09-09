@@ -28,18 +28,7 @@ const hints = $derived.by(() => {
 })
 </script>
 
-<footer class="footer">
+<footer class="overflow-hidden border-t border-border px-4 py-1.5 text-[0.85rem] text-dim text-ellipsis whitespace-nowrap">
   {hints.join('  •  ')}
 </footer>
 
-<style>
-  .footer {
-    border-top: 1px solid var(--border);
-    padding: 6px 16px;
-    color: var(--dim);
-    font-size: 0.85rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-</style>

@@ -14,11 +14,11 @@
     "allowJs": true,
     "checkJs": true,
     "isolatedModules": true,
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
       "@bindings/*": ["./bindings/*"]
-    }
+    },
+    "types": ["bun"]
   },
   "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte", "bindings"],
 }
